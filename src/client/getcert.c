@@ -102,6 +102,10 @@
    typedef krb5_error_code (KRB5_CALLCONV *FP_krb5_free_default_realm)
 		(krb5_context, const char *);
 # else
+#ifdef HAVE_HEIMDAL
+#define KRB5_CALLCONV_C
+#define KRB5_CALLCONV
+#endif
    typedef krb5_error_code (KRB5_CALLCONV_C *FP_krb5_build_principal_ext)
 		(krb5_context, krb5_principal *, int, const char *, ...);
    typedef krb5_error_code (KRB5_CALLCONV_C *FP_krb5_cc_close)

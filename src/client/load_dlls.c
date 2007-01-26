@@ -219,7 +219,12 @@ Unload_DLLs(
 /* Does this help any? */
 
 #include <krb5.h>
-/* #include <com_err.h> */
+#include <com_err.h>
+
+#ifdef HAVE_HEIMDAL
+#define KRB5_CALLCONV
+#define krb5_magic int
+#endif
 
 #if 1
 struct _krb5_ccache {
@@ -300,7 +305,9 @@ DECL_FUNC_PTR(krb5_cc_retrieve_cred);
 DECL_FUNC_PTR(krb5_free_context);
 DECL_FUNC_PTR(krb5_free_cred_contents);
 DECL_FUNC_PTR(krb5_free_creds);
+#ifndef HAVE_HEIMDAL
 DECL_FUNC_PTR(krb5_free_default_realm);
+#endif
 DECL_FUNC_PTR(krb5_free_host_realm);
 DECL_FUNC_PTR(krb5_free_principal);
 DECL_FUNC_PTR(krb5_get_default_realm);
@@ -322,7 +329,9 @@ FUNC_INFO k5_fi[] = {
     MAKE_FUNC_INFO(krb5_free_cred_contents),
     MAKE_FUNC_INFO(krb5_free_creds),
 //    { (void**)&pkrb5_free_default_realm, "_krb5_free_default_realm@8" },
+#ifndef HAVE_HEIMDAL
     MAKE_FUNC_INFO(krb5_free_default_realm),
+#endif
     MAKE_FUNC_INFO(krb5_free_host_realm),
     MAKE_FUNC_INFO(krb5_free_principal),
     MAKE_FUNC_INFO(krb5_init_context),

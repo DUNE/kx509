@@ -98,6 +98,10 @@ extern int MSK5_get_userid_and_realm();
 # ifdef WIN32
 #  include <loadfuncs-krb5.h>
 # else
+#ifdef HAVE_HEIMDAL
+#define KRB5_CALLCONV_C
+#define KRB5_CALLCONV
+#endif
    typedef krb5_error_code (KRB5_CALLCONV_C *FP_krb5_cc_default)
 		(krb5_context, krb5_ccache *);
    typedef krb5_error_code (KRB5_CALLCONV *FP_krb5_cc_get_principal)
