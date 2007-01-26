@@ -1,0 +1,97 @@
+##### Server-level Makefile for KX509 #####
+##### $Id$
+
+SHELL= /bin/sh
+@SET_MAKE@
+
+srcdir= @srcdir@
+VPATH= @srcdir@
+
+SHELL= /bin/sh
+
+CC= @CC@
+
+INSTALL= @INSTALL@
+INSTALL_PROGRAM= @INSTALL_PROGRAM@
+INSTALL_DATA= @INSTALL_DATA@
+
+AR= @AR@
+RANLIB= @RANLIB@
+RM= @RM@ -f
+
+DEFS= @DEFS@@DEBUG_CFLAGS@
+LIBS= @LIBS@
+
+CFLAGS= @CFLAGS@
+
+prefix= @prefix@
+binprefix=
+exec_prefix= @exec_prefix@
+bindir= ${exec_prefix}/bin
+includedir= ${prefix}/include
+manprefix=
+man1dir= ${prefix}/man/man1
+man3dir= ${prefix}/man/man3
+man8dir= ${prefix}/man/man8
+
+# The following need to be defined in order
+# to locate the Krb4, OpenSSL, and RSAref include files and libraries
+
+KRBBASE= @KRBBASE@
+OPENSSLBASE= @OPENSSLBASE@
+RSAREFBASE= @RSAREFBASE@
+
+##### End of system configuration section #####
+
+KRBINC=$(KRBBASE)/include
+KRBINCS= -I$(KRBINC) -I$(KRBINC)/kerberosIV \
+	-I$(KRBBASE)/src/include -I$(KRBBASE)/src/include/kerberosIV
+KRBLIB=$(KRBBASE)/lib
+
+KRBLIBS= -L$(KRBLIB) -lkrb4 -lkrb5 -ldes425 -lkrb5 -ldes425 -lcrypto -lcom_err
+
+
+SSL_LIBS= -R$(OPENSSLBASE) -L$(OPENSSLBASE) -lRSAglue \
+		-R$(RSAREFBASE)/local -L$(RSAREFBASE)/local/ -lrsaref
+
+SOCK_LIBS=-lresolv -lsocket -lnsl
+EX_LIBS= $(SSL_LIBS) $(SOCK_LIBS)
+
+DLIBCRYPTO=$(OPENSSLBASE)/libsslcrypto.a
+
+# -lcrypto would be preferred except that KRB5 also has a libcrypto.  They fixed this
+#   later, but it's not yet corrected in /usr/itd/packages.  Should switch once
+#   /usr/itd/packages has been updated.
+
+#LIBCRYPTO=-L$(OPENSSLBASE) -lcrypto
+LIBCRYPTO=$(DLIBCRYPTO)
+
+INCLUDE = -I.. $(KRBINCS) \
+		-I$(OPENSSLBASE)/include -I$(OPENSSLBASE)/include/openssl \
+		-I$(srcdir)
+
+WEBCGI_CFLAGS = $(CCOPT) $(DEFINE) $(INCLUDE) $(CFLAGS)
+LDFLAGS = @LDFLAGS@ -R$(KRBLIB)
+
+KX509_OBJS = kx509.o cu_util.o debug.o krbchk_ie.o store_tkt.o
+
+PROGS= kx509
+
+.c.o:
+	@$(RM) $@
+	$(CC) -o $@ -c $(WEB_CFLAGS) $<
+
+all:	$(PROGS)
+
+tags:
+	ctags $(SRC)
+
+clean:
+	$(RM) *.o $(PROGS)
+
+kx509.o: kx509.c
+	$(CC) $(WEB_CFLAGS) $(KRBINCS) -c $(srcdir)/kx509.c
+
+kx509: $(KX509_OBJS) 
+	$(RM) kx509
+	$(CC) -o kx509 $(LDFLAGS) $(KX509_OBJS) $(KRBLIBS) $(LIBCRYPTO) $(EX_LIBS)

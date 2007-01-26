@@ -1,0 +1,129 @@
+		Configuration and Installation of kx509 and kca
+
+Requirements
+============
+
+All platforms assume the use of OpenSSL.  (http://www.openssl.org)
+We currently build and test with version 0.9.6b of the OpenSSL code.
+
+The use of MIT Kerberos is also assumed.  (http://web.mit.edu/~kerberos)
+We currently build and test with version 1.2.1 of the MIT code.
+
+
+Configuration
+=============
+
+The default configuration assumes that only a client is built and that
+it will use Kerberos 5 for authentication.  The client may be configured
+to use *either* Kerberos 4 or Kerberos 5 authentication.
+
+Building the server is optional which is enabled by specifying
+"--enable-server" during the configuration.  The default configuration
+of the server is to accept only Kerberos 5 authentication.  However, it
+is possible to configure the server to accept either Kerberos 4 or
+Kerberos 5 authentication, or both.
+
+Note that the server is not supported on Windows or MacOS.
+
+UN*X platforms
+--------------
+We suggest creating a platform-specific directory beside the src directory
+to keep the source and object files separate.  From within that directory,
+run the configure script.  For example, a default build on Redhat Linux
+might be:
+
+        mkdir i386_linux24
+	cd i386_linux24
+	../src/configure --enable-server
+	make
+	make install
+
+There are several options to the configure script that may be specified:
+
+--with-umich[=yes]      Specifying this option causes the configure script
+                        to use default paths that are very UMICH-specific.
+			We advise you *NOT* use this option.
+--with-krb5[=PATH]      Specifies the use of Kerberos version 5. (Default)
+			You may optionally specify the path to your site's
+			kerberos installation directory.
+--with-krb4[=PATH]      Specifies the use of Kerberos version 4.  Selecting
+			this option disables Kerberos 5.
+			You may optionally specify the path to your site's
+			kerberos installation directory.
+--with-openssl=PATH     You may specify your site's path to the OpenSSL
+			installation.
+--enable-libkx509	This enables a library version (as opposed to a
+			main program) of the client which can be run from
+			another program.
+
+Other common configure options are available.  Use configure --help to
+determine the other options available.
+
+NOTE:  If --with-krb4 and --with-krb5 are both specified, the client will
+be built to use K5 authentication and the server will accept both K4 and K5
+authentication.
+
+Below is a table explaining the Kerberos options to configure and
+how the client and server will be configured given those options.
+Note that the only way to build a K4 client is to specify --with-krb4
+w/o specifying --with-krb5.
+
+configuration options		client		server
+----------------------------	----------	----------
+<none (default)>		K5		K5 (only)
+--with-krb5			K5		K5 (only)
+--with-krb4			K4		K4 (only)
+--with-krb4 --with-krb5		K5		K4 or K5
+
+Windows Platforms
+-----------------
+There is Windows batch file called kx509.bat which can be modified to
+set up the correct pointer to the openssl installation to be used.
+It can also be modified to select either K4 or K5 authentication and
+the correct location of the Kerberos files to be used.`
+The script assumes a separate build directory for windows and uses the
+name i386_nt35.  (This is an artifact of the the AFS environment that
+we use to use common source for several different platforms.)
+
+Modify the script to set the "o" variable to point to your windows build
+of OpenSSL.  Modify the script to set either the mitk4 or mitk5 variable
+and set the correct path to your MIT KfW installation.  After setting
+these variables run the script from the directory above the src
+directory. This will invoke the win32 configure script using Perl,
+which will generate Visual Studio workspace and project files.
+You can open the workspace from Visual Studio and build it from there.
+
+Installation and Use
+====================
+
+The client uses a DNS lookup to determine where the KCA(s) is(are)
+located.  If there are more than one KCAs listed in the DNS, the
+client will try each in succesion until it succeeds or has tried
+all the possible servers.
+
+The form of the DNS SRV record is as follows:
+
+_kca._udp.CITI.UMICH.EDU.     IN      SRV     0       0       9878    babble
+                              IN      SRV     0       0       9878    kca2
+
+Where "_kca._udp" is required, and ".CITI.UMICH.EDU" is the optional
+domain name.  The "9878" field is the port number on which the server
+is listening.  "babble" is the name of the machine running the KCA.
+the user has authenticated within.  In the example above, there are
+two KCAs for the domain "CITI.UMICH.EDU" running on servers "babble"
+and "kca2".
+
+
+The server (KCA) has a configuration file.  There is an example in
+src/server/kca.cnf.sample.  This specifies a number of configuration
+options for the server.  There are comments in the sample file
+explaining what each option is for, and the default value for
+each option that is not specified in the config file.
+
+The server (KCA) requires a Private Key/Certificate pair with which it
+signs the certificates that it issues.  There is a script in
+src/server/mkcacert.sh that will create an initial self-signed
+certificate if you do not already have a Key/Certificate pair.
+There is a readme file, src/server/mkcacert.README which explains
+how to configure and run the script.
+

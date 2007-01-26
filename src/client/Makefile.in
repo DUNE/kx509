@@ -1,0 +1,118 @@
+##### Client-level Makefile for KX509 #####
+##### $Id$
+
+SHELL		= /bin/sh
+@SET_MAKE@
+
+srcdir		= @srcdir@
+VPATH		= @srcdir@
+
+SHELL		= /bin/sh
+
+CC		= @CC@
+
+INSTALL		= @INSTALL@
+INSTALL_PROGRAM	= @INSTALL_PROGRAM@
+INSTALL_DATA	= @INSTALL_DATA@
+
+AR		= @AR@
+RANLIB		= @RANLIB@
+RM		= @RM@ -f
+
+DEFS		= @DEFS@ -D@SYS@
+CFLAGS		= @CFLAGS@ @CLIENT_CFLAGS@
+LDFLAGS		= @LDFLAGS@
+SHLIB_SUFFIX	= @SHLIB_SUFFIX@
+SHLIB_PGM	= @SHLIB_PGM@
+
+prefix		= @prefix@
+binprefix	=
+exec_prefix	= @exec_prefix@
+bindir		= ${exec_prefix}/bin
+includedir	= ${prefix}/include
+manprefix	=
+man1dir		= ${prefix}/man/man1
+man3dir		= ${prefix}/man/man3
+man8dir		= ${prefix}/man/man8
+
+# The following need to be defined in order
+# to locate the Krb5, Krb4 and OpenSSL include files and libraries
+
+KRB_BASE	= @KRBBASE@
+OPENSSL_BASE	= @OPENSSLBASE@
+
+#
+# COMPILE-TIME
+#
+
+KRB_INCS	= @KRB_INC@
+
+INCLUDE 	= -I$(OPENSSL_BASE)/include $(KRB_INCS) \
+			-I$(srcdir) -I$(srcdir)/../lib -I..
+
+CLIENT_CFLAGS	= $(DEFS) $(DEFINE) $(INCLUDE) $(CCOPT) $(CFLAGS)
+
+#
+# LINK-TIME
+#
+
+# N.B.	Avoid using (Solaris) K5 shared libs for KX509 -- silent DES collisions
+#	cause problems that are avoided by statically linking K5 components
+#	BILLDO 2001.0610
+
+KRB_LIBS	= @KRB_LIB@
+OPENSSL_LIBS	= @CRYPTO_REF@ -L$(OPENSSL_BASE)/lib -L$(OPENSSL_BASE) -lcrypto
+KX_LIBS		= ../lib/libkx.a
+EX_LIBS		= @SOCK_LIBS@
+LIBS		= $(KX_LIBS) $(OPENSSL_LIBS) $(KRB_LIBS) $(EX_LIBS) @LIBPATH@
+
+
+KX509_OBJS 	= kx509.o debug.o getcert.o get_kca_list.o get_realm.o \
+			load_dlls.o store_in_cc.o store_tkt.o
+
+LIBKX509_OBJS 	= kx509_lib.o debug.o getcert_lib.o get_kca_list.o get_realm.o \
+			load_dlls.o store_in_cc_lib.o store_tkt.o
+
+PROGS		= kx509 kxlist @EXTRA_CLIENT_TARGETS@
+
+all:	$(PROGS)
+
+tags:
+	ctags $(SRC)
+
+clean:
+	$(RM) *.o $(PROGS)
+
+
+kx509: $(KX509_OBJS) $(KX_LIBS)
+	$(RM) kx509
+	$(CC) -o kx509 $(LDFLAGS) $(CCOPT) $(CFLAGS) $(KX509_OBJS) $(LIBS)
+
+kxlist: kxlist.o $(KX_LIBS)
+	$(RM) kxlist
+	$(CC) -o kxlist $(LDFLAGS) $(CCOPT) $(CFLAGS) kxlist.o $(LIBS)
+
+libkx509.$(SHLIB_SUFFIX): $(LIBKX509_OBJS) $(KX_LIBS)
+	$(RM) $@
+	$(SHLIB_PGM) -o $@ $(LIBKX509_OBJS) $(KX_LIBS) @EXTRA_KX_LIBS@
+
+install: kx509 kxlist
+	$(INSTALL_PROGRAM) kx509 $(bindir)
+	$(INSTALL_PROGRAM) kxlist $(bindir)
+
+.c.o:
+	@$(RM) $@
+	$(CC) $(CLIENT_CFLAGS) -c $<
+
+kx509_lib.o : kx509.c
+	@$(RM) $@
+	$(CC) $(CLIENT_CFLAGS) -DKX509_LIB -c $< -o $@
+
+getcert_lib.o: getcert.c
+	@$(RM) $@
+	$(CC) $(CLIENT_CFLAGS) -DKX509_LIB -c $< -o $@
+
+store_in_cc_lib.o: store_in_cc.c
+	@$(RM) $@
+	$(CC) $(CLIENT_CFLAGS) -DKX509_LIB -c $< -o $@
+

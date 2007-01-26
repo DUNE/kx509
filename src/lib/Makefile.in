@@ -1,0 +1,73 @@
+##### Server-level Makefile for KX509 #####
+##### $Id$
+
+SHELL		= /bin/sh
+@SET_MAKE@
+
+srcdir		= @srcdir@
+VPATH		= @srcdir@
+
+SHELL		= /bin/sh
+
+CC		= @CC@
+
+INSTALL		= @INSTALL@
+INSTALL_PROGRAM	= @INSTALL_PROGRAM@
+INSTALL_DATA	= @INSTALL_DATA@
+
+AR		= @AR@
+RANLIB		= @RANLIB@
+RM		= @RM@ -f
+
+DEFS		= @DEFS@
+LIBS		= @LIBS@
+
+prefix		= @prefix@
+binprefix	=
+exec_prefix	= @exec_prefix@
+bindir		= ${exec_prefix}/bin
+includedir	= ${prefix}/include
+manprefix	=
+man1dir		= ${prefix}/man/man1
+man3dir		= ${prefix}/man/man3
+man8dir		= ${prefix}/man/man8
+
+# The following need to be defined in order
+# to locate the Krb include files and libraries
+
+KRB_BASE	= @KRBBASE@
+OPENSSL_BASE	= @OPENSSLBASE@
+
+INCLUDE 	= -I$(OPENSSL_BASE)/include -I.. -I$(srcdir)
+
+CFLAGS		= @CFLAGS@
+LIB_CFLAGS	= -D@SYS@ $(CCOPT) $(DEFS) $(DEFINE) $(INCLUDE) $(CFLAGS)
+
+KX_LIB_OBJS 	= udp_nb_socket.o	udp_nb_sockets.o 		\
+		  udp_nb_bind.o		udp_nb_connect.o 		\
+		  udp_nb_select.o					\
+		  udp_nb_send.o		udp_nb_sendto.o 		\
+		  udp_nb_recv.o		udp_nb_recvfrom.o		\
+		  msg.o 						\
+		  kx509_asn.o		kx509_ck.o
+
+PROGS		= libkx.a
+
+.c.o:
+	@$(RM) $@
+	$(CC) $(LIB_CFLAGS) -c $<
+
+all:	$(PROGS)
+
+tags:
+	ctags $(SRC)
+
+clean:
+	$(RM) *.o $(PROGS)
+
+libkx.a: $(KX_LIB_OBJS) 
+	$(RM) $@
+	$(AR) -q $@ $(KX_LIB_OBJS)
+	$(RANLIB) $@
+
+install:

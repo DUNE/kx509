@@ -1,0 +1,107 @@
+
+				KX509 OVERVIEW:
+				  Leveraging
+			    Kerberos Authentication
+			      to quickly deploy a
+		    Lightweight Public Key Infrastructure (PKI)
+
+				billdo@umich.edu
+				  2000/01/12
+
+
+PURPOSE
+
+The "KX509" package is a collection of software that together allows an
+organization to leverage their existing Kerberos infrastructure to
+deploy a "lightweight PKI" of standard X.509 (v3) certificates.
+
+This "lightweight PKI" enables a user to use their Kerberos Ticket (TGT)
+to acquire a one-day X.509 certificate that corresponds to the RSA key-pair
+that they just generated.  The key-pair is informally referred to as a
+"junk key" to emphasize it's ephemeral purpose -- unlike more traditional
+PKI approaches, a given user will generate a new key-pair each time they
+"login".  For people that use multiple computers in day, they could actually
+have several different key-pairs in use at a time.  While this precludes
+their direct use for long-term encryption, it does allow one to quickly
+deploy a PKI that can be used to enable web-based client authentication
+without training users to re-enter their Kerberos passwords when prompted...
+The need for Certificate Revocation Lists is obviated by restricting
+certificate lifetimes to a single day.
+
+On non-Windows platforms, the key-pair and cert are then stored in the
+user's kerberos ticket file to take advantage of existing code that ensures
+that the ticket file is only accessible by that user and is removed when
+user logs out.  This use of the ticket file does not interfere with existing
+uses of the ticket file because the key-pair and cert are "wrapped" so that
+they appear to be normal (although rather large) kerberos tickets.  On
+Windows platforms, the key-pair and cert are stored in the Windows Registry
+in the place that Microsofts Internet Explorer expects them to be.
+
+WALK-THROUGH
+
+Step-by-step walk-through of "KX509 cert acquisition":
+
+	1.  KX509 generates an RSA key-pair
+	2.  KX509 connects to the organization-wide KCA (Kerborized Certificate Authority)
+	3.  KX509 authenticates as the user to KCA using standard K4/K5 libraries
+		(krb_mk_req & krb_rd_req)
+	4.  KX509, once authenticated, requests an X.509 certificate for the user
+		with the transmitted public key
+	5.  KCA gathers information for the X.509 certificate from institutional
+		resources (user's Full Name in particular)
+	6.  KCA uses this information plus the received public key to
+		generate an X.509 (v3) certificate signed by its CA private key
+		with a validity lifetime of *one day*.
+	7.  KCA returns this resulting certificate to KX509
+	8.  KX509 stores the key-pair and certificate in the user's ticket file
+		(except for Windows where they are stored in the registry)
+	9.  KX509 exits.
+
+PACKAGE COMPONENTS
+
+The KX509 package is composed of three components: client, webcgi, & server.
+
+The "client" component is "kx509" and is run directly by the user on their
+"workstation" machine.
+
+The "webcgi" component is normally *NOT* used.  It's only intended use is for
+those rare occasions (such as a short business trip) when a user is using
+an unconfigured computer to access organization web-based services.  It requires
+that the user visit a special organization web-site which will prompt them
+to enter their "login ID" and "Kerberos password" into a web form.  While
+the forms contents *will* be SSL-encrypted in transit thus securing the
+*connection* against third-party eavesdropping, there are numerous good
+reasons (see referenced papers) why this is still inherently insecure.
+
+    DO NOT USE "webcgi" AS THE GENERAL WAY FOR USERS TO ACQUIRE THEIR CERTS!!
+	                 (YOU HAVE BEEN WARNED)
+
+The "server" component is "kca".  Normally an organization would only run
+one of these (possibly "replicated" by running it on a few central machines).
+It needs to be very secure and highly available and reliable.  It should be
+the only place that the RSA private key for the organization's CA resides.
+
+
+RUN-TIME DEPENDENCIES
+
+CLIENT-SIDE
+
+Besides connecting to the server "kca", the "client" component "kx509" also
+depends on some libraries which may be dynamically linked and therefore need
+to be accesible when run.  It's other dependency is access to the user's
+ticket file (often pointed to by the KRBTKFILE environment variable).
+
+SERVER-SIDE
+
+The "server" component "kca" is dependent on a configuration file which
+identifies all of the local files and remote services that it depends on.
+This file is provided on the command line at run-time.
+
+In brief, the dependencies are:
+
+	<site_cnt> & <inst_off>	The number of replication sites and this server's offset
+					(amounts to increment and offset sernums by)
+	clientca.{crt,key}	CA's X.509 certificate and RSA Private Key
+	kca_serial		Serial Number for most recent gen'd Cert
+	srvtab.keysigner	Kerberos srvtab for default REALM
+	srvtab.keysigner.FOO	Kerberos srvtab for the "FOO" REALM

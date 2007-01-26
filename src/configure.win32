@@ -1,0 +1,167 @@
+:
+eval 'exec perl -S $0 ${1+"$@"}'
+    if $running_under_some_shell;
+##
+##  Configure -- KX509 Microsoft Visual C++ configuration script
+##
+
+require 5.000;
+use strict;
+
+my $usage="Usage: Configure [--kx509proj=KX509PROJ] [--kx509dir=KX509DIR] [--openssldir=OPENSSLDIR] [--mitk4dir=MITK4DIR] [--mitk5dir=MITK5DIR] [--withmsk5]\n";
+
+# Options:
+#
+# --kx509proj	modify Project files (kx509*.dsp) to use KX509PROJ as base of
+#		kx509 subtree to build to
+#
+# --kx509dir	modify Project files (kx509*.dsp) to use KX509DIR as base of
+#		kx509 subtree containing src directory
+#		(Default: X:\\build\\kx509)
+#
+# --openssldir	modify Project files (kx509*.dsp) to use OPENSSLDIR as base of
+#		OpenSSL subtree containing inc32 and out32dll directories
+#		(Default: X:\\build\\openssl)
+#
+# --mitk4dir	modify Project files (kx509*.dsp) to use MITK4DIR as base of
+#		MIT Kerberos4 subtree containing include and library directories
+#		(Default: "" -- NO MIT K4 SUPPORT)
+#
+# --mitk5dir	modify Project files (kx509*.dsp) to use MITK5DIR as base of
+#		MIT Kerberos5 subtree containing include and lib directories
+#		(Default: "" -- NO MIT K5 SUPPORT)
+#
+# --withmsk5	modify Project files (kx509*.dsp) to define USE_MSK5
+#
+
+my $kx509proj="";
+my $kx509dir="";
+my $openssldir="";
+my $mitk4dir="";
+my $mitk5dir="";
+my $withmsk5="";
+my @skip=();
+
+foreach (@ARGV)
+	{
+	if (/^[-+]/)
+		{
+		if (/^--kx509proj=(.*)$/)
+			{
+			$kx509proj=$1;
+			}
+		elsif (/^--kx509dir=(.*)$/)
+			{
+			$kx509dir=$1;
+			}
+		elsif (/^--openssldir=(.*)$/)
+			{
+			$openssldir=$1;
+			}
+		elsif (/^--mitk4dir=(.*)$/)
+			{
+			$mitk4dir=$1;
+			}
+		elsif (/^--mitk5dir=(.*)$/)
+			{
+			$mitk5dir=$1;
+			}
+		elsif (/^--withmsk5(.*)$/)
+			{
+			$withmsk5="TRUE";
+			}
+		else
+			{
+			print STDERR $usage;
+			exit(1);
+			}
+		}
+	}
+
+chop $openssldir if $openssldir =~ /\/$/;
+
+open(IN,'<../src/kx509.dsp.org') || die "unable to read <../src/kx509.dsp.org:$!\n";
+open(OUT,">kx509/kx509.dsp") || die "unable to create >kx509/kx509.dsp:$!\n";
+while (<IN>)
+	{
+	s/KX509PROJ/$kx509proj/g;
+	s/KX509DIR/$kx509dir/g;
+	s/OPENSSLDIR/$openssldir/g;
+
+	# Verify either MITK4 or MITK5 is selected
+	if ($mitk4dir eq "" && $mitk5dir eq "")
+	{
+		die "You must define either MITK4DIR or MITK5DIR";
+	}
+
+	# If mitk4dir was not defined, then don't use MIT Kerberos4 "stuff"
+	if (($mitk4dir ne "") && ($mitk5dir eq ""))
+	{
+		s/MITKDIR/$mitk4dir/g;
+		s/MITKINCLUDE/$mitk4dir\\athena\\auth\\krb4/g;
+		s/MITKLIB/krbv4w32.lib/g;
+		s/MITKPATHLIB/$mitk4dir\\target\\lib\\i386/g;
+	}
+
+	# If mitk5dir was not defined, then don't use MIT Kerberos5 definitions
+	if ($mitk5dir eq "")
+	{
+		s/MITK5DEFINE//g;
+	}
+	else
+	{
+		s/MITKDIR/$mitk5dir/g;
+		s/MITK5DEFINE/\/D \"USE_KRB5\"/g;
+		s/MITKINCLUDE/$mitk5dir\\athena\\auth\\krb5\\src/g;
+		s/MITKLIB/krb5_32.lib comerr32.lib/g;
+		s/MITKPATHLIB/$mitk5dir\\src\\target\\lib\\i386/g;
+	}
+
+	# If withmsk5 was not defined, then don't use define USE_MSK5
+	if ($withmsk5 eq "")
+	{
+		s/MSK5DEFINE//g;
+	}
+	else
+	{
+		s/MSK5DEFINE/\/D \"USE_MSK5\"/g;
+	}
+	print OUT $_;
+	}
+close(IN);
+close(OUT);
+
+
+if ($mitk4dir ne "" && $mitk5dir ne "")
+{
+	print "\n#########\n#WARNING# both MITK4DIR and MITK5DIR are defined (will use Kerberos 5)\n#########\n\n"
+}
+
+print "KX509PROJ   becomes $kx509proj\n";
+print "KX509DIR    becomes $kx509dir\n";
+print "OPENSSLDIR  becomes $openssldir\n";
+print "MITK4DIR    becomes $mitk4dir\n";
+print "MITK5DIR    becomes $mitk5dir\n";
+print "WITHMSK5    becomes $withmsk5\n";
+
+exit(0);
+
+sub usage
+	{
+	print STDERR $usage;
+	exit(1);
+	}
+
+sub which
+	{
+	my($name)=@_;
+	my $path;
+	foreach $path (split /:/, $ENV{PATH})
+		{
+		if (-f "$path/$name" and -x _)
+			{
+			return "$path/$name" unless ($name eq "perl" and
+			 system("$path/$name -e " . '\'exit($]<5.0);\''));
+			}
+		}
+	}

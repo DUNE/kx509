@@ -1,0 +1,24 @@
+:
+#
+#  KCA  Startup
+#
+# Note: the purpose of kca is to generate 1-day X.509 certs for
+#	kerberos authenticated requestors.
+
+HOME=/usr/tmp
+cd $HOME
+AFSCELL=umich.edu
+#
+exec >>/usr/krbchk/kca.log 2>&1
+#
+# this loop goes into the background & automatically restarts kca if it crashes.
+#
+( while :
+do
+	date
+       /usr/krbchk/kca -c /usr/krbchk/kca.cnf -O
+        sleep 20
+done & ) &
+#
+# the two &s ensure that kca isn't our child.
+#

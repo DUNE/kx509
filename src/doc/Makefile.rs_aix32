@@ -1,0 +1,5 @@
+#
+PIC=pic
+TROFF=psroff -t
+DPOST=
+FIG2PIC=fig2dev -L pic

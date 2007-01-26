@@ -1,0 +1,89 @@
+
+	Creating a self-signed Certificate for your KCA
+
+			kwc@umich.edu
+			   2001.0824
+
+
+The script found in kx509/src/server/mkcacert.sh can be used to
+create a self-signed certificate for your KCA.
+
+There are many defaults in the script that you will want to override.
+There are default values for the Distinguished Name (DN) of the KCA
+contained in the script that you will want to change before running
+the script, or they may be changed during execution the script.
+
+A default directory structure is assumed for the KCA configuration
+files.  You may override some of these values, or simply move and
+rename the files after they are created by the script.
+
+The useful output of the script are the KCA's private key and
+certificate.  Obviously, the private key must be kept in a secure place.
+
+The default directory location for the KCA's private key and 
+certificate is '/var/kca/conf'.
+
+The mkcacert script will prompt for the names to be given to the
+private key and certificate files.
+
+You should run the mkcacert.sh shell program as root.
+
+Below is a script output from a sample run of the script:
+
+
+
+
+
+[root@buzz server]# ./mkcacert.sh
+
+SSL Certificate Generation Utility (mkcert.sh)
+Copyright (c) 1998 Ralf S. Engelschall, All Rights Reserved.
+
+ + finding random files on your platform
+______________________________________________________________________
+
+STEP 1: Generating RSA private key for new CA cert (1024 bit) [newcert.key]
+3993 semi-random bytes loaded
+Generating RSA private key, 1024 bit long modulus
+..............................................................................++++++
+........................................................................++++++
+e is 65537 (0x10001)
+______________________________________________________________________
+
+STEP 2: Generating X.509 certificate signing request for CA [newcert.csr]
+Using configuration from .mkcert.cfg
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+1. Country Name             (2 letter code) [US]:
+2. State or Province Name   (full name)     [Michigan]:
+3. Locality                 (eg, city)      [Ann Arbor]:
+4. Organization Name        (eg, company)   [University of Michigan]:
+5. Common Name              (eg, FQDN)      [FIX THIS!]:Your CA Name Here
+______________________________________________________________________
+
+STEP 3: Generating X.509 certificate signed by own CA [newcert.crt]
+Signature ok
+subject=/C=US/ST=Michigan/L=Ann Arbor/O=University of Michigan/CN=Your CA Name Here
+Getting Private key
+______________________________________________________________________
+
+STEP 4: Renaming the files
+
+The new private key and certificate are currently in
+/var/kca/conf/newcert.key and
+/var/kca/conf/newcert.crt respectively.
+
+Specify a name to replace 'newcert' : mykca
+Will rename the files to
+/var/kca/conf/mykca.key and
+/var/kca/conf/mykca.crt respectively.
+Proceed? [ y ] 
+The new private key is in /var/kca/conf/mykca.key
+The new certificate is in /var/kca/conf/mykca.crt
+[root@buzz server]# 
+

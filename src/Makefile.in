@@ -1,0 +1,66 @@
+##### Top-level Makefile for KX509 #####
+##### $Id$
+
+SHELL= /bin/sh
+@SET_MAKE@
+
+srcdir= @srcdir@
+VPATH= @srcdir@
+
+SHELL= /bin/sh
+
+CC= @CC@
+
+INSTALL= @INSTALL@
+INSTALL_PROGRAM= @INSTALL_PROGRAM@
+INSTALL_DATA= @INSTALL_DATA@
+
+AR= @AR@
+RANLIB= @RANLIB@
+RM= @RM@ -f
+
+DEFS= @DEFS@
+LIBS= @LIBS@
+
+prefix= @prefix@
+binprefix=
+exec_prefix= @exec_prefix@
+bindir= ${exec_prefix}/bin
+includedir= ${prefix}/include
+manprefix=
+man1dir= ${prefix}/man/man1
+man3dir= ${prefix}/man/man3
+man8dir= ${prefix}/man/man8
+
+##### End of system configuration section #####
+
+# Subdirectories with makefiles
+SUBDIRS= @SUBDIRS@
+
+##### Targets #####
+
+all:
+	@for i in ${SUBDIRS}; do cd $$i; ${MAKE} ; cd .. ; done
+
+clean:
+	@for i in ${SUBDIRS}; do (cd $$i; exec ${MAKE} clean ) done
+
+install:
+	@for i in ${SUBDIRS}; do (cd $$i; exec ${MAKE} install ) done
+
+# Useful sub targets
+
+libkx.a:
+	cd lib; ${MAKE} ${MDEFINES} $@
+
+kca:
+	cd server; ${MAKE} ${MDEFINES} $@
+
+kx509:
+	cd client; ${MAKE} ${MDEFINES} $@
+
+Makefile: Makefile.in config.status
+	./config.status
+
+config.status: configure
+	./config.status --recheck

@@ -1,0 +1,5 @@
+#
+PIC=pic -n
+TROFF=troff -t
+DPOST=| /usr/lib/lp/postscript/dpost | sed '1s/PS$$/PS-Adobe-1.0/'
+FIG2PIC=fig2dev -L pic

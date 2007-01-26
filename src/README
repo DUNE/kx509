@@ -1,0 +1,24 @@
+		kx509/kca
+
+Introduction
+============
+
+See the accompanying file, OVERVIEW, for an introduction to
+the client program kx509, and the server kca.
+
+Configuration and Installation
+==============================
+
+See the accompanying file, INSTALL, for notes on configuring
+and installing the programs.
+
+Acknowledgments
+===============
+The original interface design was written by Bill Doster, Marcus Watts, and
+Dan Hyde.  (http://www.citi.umich.edu/techreports/reports/citi-tr-01-2.pdf)
+
+We received many comments and suggestions from Doug Engert <deengert@anl.gov>
+and Von Welch <welch@mcs.anl.gov>.
+
+Ken MacInnis <kcm@psc.edu> provided patches to build the client on 64-bit
+architectures, and other fixes.

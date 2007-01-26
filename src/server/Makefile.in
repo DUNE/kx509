@@ -1,0 +1,131 @@
+##### Server-level Makefile for KX509 #####
+##### $Id$
+
+SHELL		= /bin/sh
+@SET_MAKE@
+
+srcdir		= @srcdir@
+VPATH		= @srcdir@
+
+SHELL		= /bin/sh
+
+CC		= @CC@
+
+INSTALL		= @INSTALL@
+INSTALL_PROGRAM	= @INSTALL_PROGRAM@
+INSTALL_DATA	= @INSTALL_DATA@
+
+AR		= @AR@
+RANLIB		= @RANLIB@
+RM		= @RM@ -f
+
+DEFS		= @DEFS@
+LIBS		= @LIBS@
+
+CFLAGS		= @CFLAGS@ @SERVER_CFLAGS@
+LDFLAGS		= @LDFLAGS@
+
+prefix		= @prefix@
+binprefix	=
+exec_prefix	= @exec_prefix@
+bindir		= ${exec_prefix}/bin
+sbindir		= ${exec_prefix}/sbin
+includedir	= ${prefix}/include
+manprefix	=
+man1dir		= ${prefix}/man/man1
+man3dir		= ${prefix}/man/man3
+man8dir		= ${prefix}/man/man8
+
+# The following need to be defined in order
+# to locate the AFS and Kerberos include files
+
+AFSTOP		= @AFSTOP@
+KRBBASE		= @KRBBASE@
+LDAPBASE	= @LDAPBASE@
+OPENSSLBASE	= @OPENSSLBASE@
+OPENSSLLIB	= @OPENSSLLIB@
+UNIQNAMEBASE	= @UNIQNAMEBASE@
+
+##### End of system configuration section #####
+
+KRBINCS		= @KRB_INC@
+X500INC		= -I$(LDAPBASE)/include -I$(srcdir)
+X500CFLAGS	= $(X500INC) -Dsunos4 -DKERBEROS -DAFSKERBEROS -DUOFM $(CCOPT) $(SERVER_CFLAGS)
+
+LDAPLIBS	= -L$(LDAPBASE)/lib -lldap -llber
+KRBLIBS		= @KRB_LIB@
+X500LIBS	= $(LDAPLIBS)
+
+AFSLIBDIR	= $(AFSTOP)/lib
+AFSLIBS		= @AFS_DOMESTIC_LIBDIR@ -L$(AFSLIBDIR) -L$(AFSLIBDIR)/afs \
+			-lkauth \
+			-lprot \
+			-lubik \
+			-lauth \
+			-lrxkad \
+			-lrx \
+			-llwp \
+			$(AFSLIBDIR)/afs/libcom_err.a \
+			-laudit \
+			$(AFSLIBDIR)/afs/util.a \
+			$(AFSLIBDIR)/afs/libsys.a \
+			@UCB_LIB@ \
+			-L$(KRBBASE)/lib -ldes
+
+UNIQNAMELIBS	= -L$(UNIQNAMEBASE)/lib -luniq $(AFSLIBS)
+
+LIBCRYPTO	= @CRYPTO_REF@ -L$(OPENSSLLIB) -lcrypto
+LIBSSL		= @SSL_REF@ -L$(OPENSSLLIB) -lssl
+
+SOCK_LIBS	= @SOCK_LIBS@
+
+EX_LIBS		= $(LIBSSL) $(LIBCRYPTO) $(SOCK_LIBS)
+
+DEFINE		= $(DEFS) -DOPENSSL -D@SYS@
+
+INCLUDE		= -I.. -I$(OPENSSLBASE) -I$(OPENSSLBASE)/include \
+		  -I$(OPENSSLBASE)/include/openssl -I$(srcdir) \
+	  	  -I$(UNIQNAMEBASE)/include -I$(AFSTOP)/include -I$(srcdir)/../lib
+
+SERVER_CFLAGS	= $(CCOPT) $(DEFINE) $(INCLUDE) $(CFLAGS)
+
+S_UTILS		= su_util.o su_getcn.o su_getumid.o su_getflags.o su_kca_ext.o su_clntvers.o dprintf.o
+
+KX_LIB		= ../lib/libkx.a
+
+# ALL_LIBS	= $(KRBLIBS) $(UNIQNAMELIBS) $(X500LIBS) $(EX_LIBS)
+ALL_LIBS	= @UMID_LIBS@ @LDAP_LIBS@ $(KRBLIBS) $(EX_LIBS) @LIBPATH@
+
+all: kca
+
+.c.o:
+	@$(RM) $@
+	$(CC) $(SERVER_CFLAGS) -c $<
+
+Makefile: Makefile.in ../config.status
+	(cd ..; config.status)
+
+../config.status: @top_srcdir@/configure
+	(cd ..; config.status --recheck)
+
+tags:
+	ctags $(SRC)
+
+clean:
+	$(RM) *.o kca
+
+su_getcn.o: su_getcn.c
+	$(CC) $(X500CFLAGS) -c $(srcdir)/su_getcn.c
+
+su_util.o: su_util.c
+	$(CC) $(KRBINCS) $(SERVER_CFLAGS) -c $(srcdir)/su_util.c
+
+kca.o: kca.c
+	$(CC) $(KRBINCS) $(SERVER_CFLAGS) -c $(srcdir)/kca.c
+
+kca: kca.o $(S_UTILS) $(KX_LIB)
+	$(RM) kca
+	$(CC) -o kca $(LDFLAGS) $(CCOPT) $(CFLAGS) kca.o $(S_UTILS) $(KX_LIB) $(ALL_LIBS)
+
+install: kca
+	$(INSTALL_PROGRAM) kca $(sbindir)

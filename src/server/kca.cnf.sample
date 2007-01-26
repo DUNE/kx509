@@ -1,0 +1,64 @@
+#
+#  SAMPLE KCA Configuration file
+#
+#						#---------------------------------#
+#						# Default values
+#						#---------------------------------#
+[ ca ]
+default_ca	= CA_default			# "CA_default"
+#
+# "default_ca" is the name of the default CA section of the config file
+#
+[ CA_default ]
+logfile_name	= /var/kca/kca.log		# "/var/kca/kca.log"
+#
+# "logfile_name" is the PREFIX of the log file name.
+# Note that .DATESTAMP is added to the name specified.
+#
+serial		= /var/kca/serial		# "/var/https/test/ssl/kca_serial"
+#
+# "serial" is the name of the serial number file.
+# This file must already exist and should be initialized
+# with the value of the first serial number to be issued
+# by this CA.  If you have multiple CAs servicing a realm,
+# each serial file should start with a different value and
+# "sn_increment" should be set to the number of CAs in the
+# realm.  This ensures that the serial numbers will be unique
+# within the realm.
+#
+sn_increment	= 3				# "1"
+#
+# "sn_increment" is the number added to the previously issued
+# serial number.  This should be set to a value equal to the
+# number of CAs that are serving a realm.  See "serial" above.
+#
+certificate	= /var/kca/conf/kca_root.crt	# "/var/kca/conf/kca.crt"
+#
+# "certificate" is the name of the file containing the CA's root certificate
+#
+private_key	= /var/kca/conf/kca_root.key	# "/var/kca/conf/kca.key"
+#
+# "private_key" is the name of the file containing the CA's private key
+#
+email_domain    = OUTPOST.CITI.UMICH.EDU	# <User's authentication realm>
+#
+# "email_domain" is the domain name to append to the requestor's userid
+# to form their e-mail address which is used in the "E=" component of
+# the Distinguished Name of the requestor's certificate.  If this value
+# is specified in the config file, then it is used for ALL certificates
+# issued.  If this value is omitted from the config file, the requestor's
+# authentication realm name will be used.
+#
+[ kx509 ]
+keytab		= /var/kca/kca_keytab		# "/var/kca/kca_service.keytab"
+#
+# "keytab" is the name of the K5 keytab file containing the keytab for
+# the kca_service/<hostname> principal.
+# This is used when the KCA is configured to support K5 authentication (the default)
+#
+srvtab		= /var/kca/kca_srvtab		# "/etc/srvtab.keysigner"
+#
+# "srvtab" is the name of the K4 srvtab file containing the srvtab for the
+# cert.x509 principal.
+# This is used when the KCA is configured to support K4 authentication
+#

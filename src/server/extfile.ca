@@ -1,0 +1,78 @@
+extensions	= ca_cert		# The extentions to add to a CA cert
+
+[ ca_cert ]
+
+# These extensions are added when 'ca' signs a request.
+
+# This goes against PKIX guidelines but some CAs do it and some software
+# requires this to avoid interpreting an end user certificate as a CA.
+
+basicConstraints=CA:TRUE, pathlen:0
+
+# Here are some examples of the usage of nsCertType. If it is omitted
+# the certificate can be used for anything *except* object signing.
+
+# BILLDO 2001.0625 -- From OpenSSL's crypto/x509v3/v3_bitst.c 
+
+#     static BIT_STRING_BITNAME ns_cert_type_table[] = {
+#     {0, "SSL Client", "client"},
+#     {1, "SSL Server", "server"},
+#     {2, "S/MIME", "email"},
+#     {3, "Object Signing", "objsign"},
+#     {4, "Unused", "reserved"},
+#     {5, "SSL CA", "sslCA"},
+#     {6, "S/MIME CA", "emailCA"},
+#     {7, "Object Signing CA", "objCA"},
+#     {-1, NULL, NULL}
+#     };
+
+#     static BIT_STRING_BITNAME key_usage_type_table[] = {
+#     {0, "Digital Signature", "digitalSignature"},
+#     {1, "Non Repudiation", "nonRepudiation"},
+#     {2, "Key Encipherment", "keyEncipherment"},
+#     {3, "Data Encipherment", "dataEncipherment"},
+#     {4, "Key Agreement", "keyAgreement"},
+#     {5, "Certificate Sign", "keyCertSign"},
+#     {6, "CRL Sign", "cRLSign"},
+#     {7, "Encipher Only", "encipherOnly"},
+#     {8, "Decipher Only", "decipherOnly"},
+#     {-1, NULL, NULL}
+#     };
+
+# Expect this to be correct for a CA  (BILLDO 2001.0625)
+nsCertType			= sslCA, emailCA, objCA
+
+# This is OK for an SSL server.
+#nsCertType			= server
+
+# For an object signing certificate this would be used.
+#nsCertType = objsign
+
+# For normal client use this is typical
+#nsCertType = client, email
+#nsCertType = client
+
+# This is typical also
+
+#keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+
+#nsComment			= "OpenSSL Generated Certificate"
+
+# PKIX recommendations
+#subjectKeyIdentifier=hash
+#authorityKeyIdentifier=keyid,issuer:always
+
+# Import the email address.
+
+#subjectAltName=email:copy
+
+# Copy subject details
+
+#issuerAltName=issuer:copy
+
+#nsCaRevocationUrl		= http://www.domain.dom/ca-crl.pem
+#nsBaseUrl
+#nsRevocationUrl
+#nsRenewalUrl
+#nsCaPolicyUrl
+#nsSslServerName

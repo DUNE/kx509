@@ -1,0 +1,5 @@
+#!/bin/sh
+
+mv kca- kca--
+mv kca kca-
+mv kca+ kca

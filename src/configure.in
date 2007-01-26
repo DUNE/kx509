@@ -1,0 +1,1108 @@
+dnl Configure template for KX509
+dnl $Id$
+dnl
+dnl Process this file with autoconf to produce a configure script
+dnl
+AC_INIT(KX509_SRC)
+AC_REVISION($Revision$)dnl
+AC_PREREQ(2.0)
+AC_CONFIG_HEADER(config.h)
+
+AC_CANONICAL_SYSTEM
+
+dnl *********************************************************************
+dnl * See if umich-specific defaults were requested.
+dnl *********************************************************************
+
+UMICH=no
+AC_ARG_WITH(
+   umich,
+   [  --with-umich            use University of Michigan defaults
+                          (You probably DON'T want to use this
+                           if you're not at UMich!)],
+   [case "$withval" in
+       ""|yes)
+          echo "Using umich defaults";
+          UMICH=yes;
+          ;;
+       no)
+          ;;
+       *)
+          echo "Ignoring --with-umich=$withval";
+          echo "*_Not_* using umich defaults";
+          ;;
+    esac
+   ],
+)
+
+case "$UMICH" in
+   yes)
+      dnl echo "UMICH is yes"
+      if test "${AFS_SYSNAME+set}" = set; then :
+      else
+         dnl  NOTE: @sys  *will* give "bad substitution" message
+         dnl  when used in the AC_CHECK_KRB_LIB macro!
+         AFS_SYSNAME="`/usr/vice/bin/sys || /usr/afs/bin/sys || echo @sys`"
+      fi
+
+      KRBBASE="/afs/umich.edu/group/itd/software/packages/k/kerberos-5/krb5-1.2.1UM/${AFS_SYSNAME}/dest/usr/krb5"
+      KRB4_DEFAULT=$KRBBASE
+      KRB5_DEFAULT=$KRBBASE
+      define(umich_packages,/afs/umich.edu/group/itd/software/packages)
+      kx509_path_AFSTOP="umich_packages/a/afs-3.4ap/transarc/${AFS_SYSNAME}.new
+      umich_packages/a/afs-3.4ap/transarc/${AFS_SYSNAME}
+         /afs/umich.edu/group/itd/umich/public/${AFS_SYSNAME}/afs34a.patches/July97
+         /afs/umich.edu/group/itd/umich/public/${AFS_SYSNAME}/afs34a.patches
+         /afs/umich.edu/group/itd/software/.${AFS_SYSNAME}
+	 umich_packages/a/afs-3.6/transarc/${AFS_SYSNAME}"
+      kx509_path_LDAPBASE="/afs/umich.edu/um/${AFS_SYSNAME}/ldap
+         /afs/umich.edu/um/${AFS_SYSNAME}/openldap"
+      kx509_path_UNIQNAMEBASE="/afs/umich.edu/group/itd/software/packages/u/uniqname-2.0/${AFS_SYSNAME}"
+      kx509_path_OPENSSLBASE="/afs/umich.edu/group/itd/x509/build/openssl"
+      case "$target" in
+          *-linux-*)
+              KRBBASE=/usr/kerberos
+              KRB4_DEFAULT=$KRBBASE
+              KRB5_DEFAULT=$KRBBASE
+              kx509_path_OPENSSLBASE=/afs/umich.edu/group/itd/build/kwc/temp-checkout/openssl-0.9.6
+              ;;
+          sparc-sun-solaris2.6)
+              KRBBASE=/usr/um/krb5/1.1.1
+              KRB4_DEFAULT=$KRBBASE
+              KRB5_DEFAULT=$KRBBASE
+              kx509_path_OPENSSLBASE=/usr/um/openssl/0.9.6
+              kx509_path_CC=/opt/SUNWspro/bin
+	      LDFLAGS="-z muldefs"
+              ;;
+          sparc-sun-solaris2.8)
+              KRBBASE=/usr/um/krb5/1.2.1UM
+              KRB4_DEFAULT=$KRBBASE
+              KRB5_DEFAULT=$KRBBASE
+              kx509_path_OPENSSLBASE=/usr/um/openssl/0.9.6
+              kx509_path_CC=/opt/SUNWspro/bin
+	      LDFLAGS="-z muldefs"
+              ;;
+          *-ibm-aix*)
+              kx509_path_OPENSSLBASE=/afs/umich.edu/group/itd/umich/project/openssl-0.9.6
+              kx509_path_CC=/afs/umich.edu/group/itd/umich/bin
+              ;;
+          *)
+              ;;
+      esac
+      ;;
+
+   *)
+      dnl For lack of a better choice, use some Redhat Linux default values.
+      KRBBASE=/usr/kerberos
+      KRB4_DEFAULT=$KRBBASE
+      KRB5_DEFAULT=$KRBBASE
+      kx509_path_OPENSSLBASE="/usr"
+      kx509_path_CC="gcc"
+      ;;
+esac
+
+dnl *********************************************************************
+dnl * Determine compiler
+dnl *********************************************************************
+
+AC_PROG_CC
+AC_SUBST(CC)
+
+dnl *********************************************************************
+dnl ***** MISC SETTINGS *****
+dnl *********************************************************************
+dnl These need to be set up somewhat early...
+
+dnl echo "We're dealing with target '$target'"
+echo "We're dealing with target '$target'"
+
+case "$target" in
+   sparc-sun-solaris2*)
+dnl BILLDO 2002.0813      SHLIB_SUFFIX=so
+      SHLIB_SUFFIX=a
+      echo "and setting SHLIB_SUFFIX to 'a'"
+      if test "$ac_cv_prog_gcc" = yes ; then
+dnl BILLDO 2002.0813         REFERENCE="-Wl,-rpath"
+dnl BILLDO 2002.0813         SHLIB_PGM='$(CC) -shared'
+         REFERENCE=""
+         SHLIB_PGM='$(CC)'
+      else
+         dnl The Sun Workshop compiler uses '-G', not '-shared'
+dnl BILLDO 2002.0813         REFERENCE="-R"
+dnl BILLDO 2002.0813         SHLIB_PGM='$(CC) -G'
+         REFERENCE=""
+         SHLIB_PGM='$(CC)'
+      fi
+      ;;
+   *-linux-*)
+      REFERENCE="-Wl,-rpath"
+      SHLIB_SUFFIX=so
+      SHLIB_PGM='$(CC) -shared'
+      ;;
+   *-ibm-aix*)
+      REFERENCE=""
+      SHLIB_SUFFIX=a
+      if test "$ac_cv_prog_gcc" = yes ; then
+         SHLIB_PGM='$(CC) -shared'
+      else
+         dnl When using the IBM compiler, use 'ar -q' instead of cc
+         SHLIB_PGM='$(AR) -q'
+      fi
+      ;;
+   powerpc-apple-darwin*)
+      REFERENCE=""
+      SHLIB_SUFFIX=dylib
+      SHLIB_PGM='$(CC) -dynamiclib -install_name /usr/local/lib/libkx509.dylib'
+      ;;
+   *)
+      REFERENCE=""
+      SHLIB_SUFFIX=so
+      SHLIB_PGM='$(CC) -shared'
+      ;;
+esac
+AC_SUBST(REFERENCE)
+AC_SUBST(SHLIB_SUFFIX)
+AC_SUBST(SHLIB_PGM)
+
+
+dnl *********************************************************************
+dnl ***** DEFAULT PROJECT SEARCH PATHS *****
+dnl *********************************************************************
+
+
+dnl *********************************************************************
+dnl ***** FUNCTIONS *****
+dnl *********************************************************************
+dnl this next function was cribbed from AC_CHECK_LIB in autoconf...
+dnl we use this later, to check for the flavour of kerberos in use.
+dnl
+dnl AC_CHECK_KRB_LIB(LIBRARY, FUNCTION [, ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND
+dnl              [, OTHER-LIBRARIES]]])
+AC_DEFUN(AC_CHECK_KRB_LIB,
+[AC_MSG_CHECKING([for $2 in $1])
+dnl Use a cache variable name containing both the library and function name,
+dnl because the test really is for library $1 defining function $2, not
+dnl just for library $1.  Separate tests with the same $1 and different $2s
+dnl may have different results.
+ac_lib_var=`echo $1['_']$2 | sed 's% %_%g
+y%./+-%__p_%'`
+AC_CACHE_VAL(ac_cv_lib_$ac_lib_var,
+[ac_save_LIBS="$LIBS"
+LIBS="$1 $5 $LIBS"
+AC_TRY_LINK(dnl
+ifelse([$2], [main], , dnl Avoid conflicting decl of main.
+[/* Override any gcc2 internal prototype to avoid an error.  */
+]ifelse([AC_LANG], CPLUSPLUS, [#ifdef __cplusplus
+extern "C"
+#endif
+])dnl
+[/* We use char because int might match the return type of a gcc2
+    builtin and then its argument prototype would still apply.  */
+char $2();
+]),
+            [$2()],
+            eval "ac_cv_lib_$ac_lib_var=yes",
+            eval "ac_cv_lib_$ac_lib_var=no")
+LIBS="$ac_save_LIBS"
+])dnl
+if eval "test \"`echo '$ac_cv_lib_'$ac_lib_var`\" = yes"; then
+  AC_MSG_RESULT(yes)
+  ifelse([$3], ,
+[changequote(, )dnl
+  ac_tr_lib=HAVE_LIB`echo $1 | sed -e 's/[^a-zA-Z0-9_]/_/g' \
+    -e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/'`
+changequote([, ])dnl
+  AC_DEFINE_UNQUOTED($ac_tr_lib)
+  LIBS="$1 $LIBS"
+], [$3])
+else
+  AC_MSG_RESULT(no)
+ifelse([$4], , , [$4
+])dnl
+fi
+])
+
+dnl *********************************************************************
+dnl ***** ARGUMENTS *****
+dnl *********************************************************************
+
+AC_ARG_ENABLE(
+   server,
+   [  --enable-server         build the server (KCA) as well as the client (kx509)],
+   [case $enableval in
+       yes|no)
+          ;;
+       *)
+          AC_MSG_ERROR([Sorry, --enable-server can only be yes or no. (Not '$enableval'.)])
+    esac
+   ],
+   enable_server=no
+)
+
+AC_ARG_ENABLE(
+   libkx509,
+   [  --enable-libkx509       build a library version of kx509 w/o a main()],
+   [case $enableval in
+       yes|no)
+          ;;
+       *)
+          AC_MSG_ERROR([Sorry, --enable-libkx509 can only be yes or no. (Not '$enableval'.)])
+    esac
+   ],
+   enable_libkx509=no
+)
+if test "$enable_libkx509" = "yes" ; then
+   EXTRA_CLIENT_TARGETS="$EXTRA_CLIENT_TARGETS libkx509.$SHLIB_SUFFIX"
+fi
+AC_SUBST(EXTRA_CLIENT_TARGETS)
+
+AC_ARG_ENABLE(
+   debug,
+   [  --enable-debug          enable extra debugging],
+   [case $enableval in
+       yes|no)
+          ;;
+       *)
+          AC_MSG_ERROR([Sorry, --enable-debug can only be yes or no.])
+    esac
+   ],
+   enable_debug=no
+)
+case $enable_debug in
+   yes)
+      dnl I dont use ac_define(DEBUG) because that puts the result
+      dnl into config.h, and not everything that looks for ifdef DEBUG
+      dnl includes that file.  So, instead, I have to stack something
+      dnl that will get stuck into the CFLAGS line in all the makefiles.
+      dnl -mdw
+      CFLAGS="$CFLAGS -DDEBUG"
+      ;;
+esac
+AC_SUBST(CFLAGS)
+
+AC_MSG_CHECKING(for --enable-ldaplookup)
+AC_ARG_ENABLE(
+   ldaplookup,
+   [  --enable-ldaplookup     use LDAP lookup to obtain information
+                          to use in the user's DN (server only)],
+   [ case $enableval in
+      yes)
+         SERVER_CFLAGS="$SERVER_CFLAGS -DHAVE_LDAP_LOOKUP"
+         AC_MSG_RESULT("yes") 
+         LDAP_LIBS='$(X500LIBS)'
+         ;;
+      no)
+         AC_MSG_RESULT("no")
+         LDAP_LIBS=
+         ;;
+      esac
+   ],
+   [ enable_ldaplookup=no
+     AC_MSG_RESULT("no")
+   ]
+)
+AC_SUBST(SERVER_CFLAGS)
+AC_SUBST(LDAP_LIBS)
+
+AC_MSG_CHECKING(for --enable-umidlookup)
+AC_ARG_ENABLE(
+   umidlookup,
+   [  --enable-umidlookup     use uniqname lookup to obtain the user's
+                          UMID for use in the user's DN (server only)],
+   [ case $enableval in
+      yes)
+         SERVER_CFLAGS="$SERVER_CFLAGS -DHAVE_UMID_LOOKUP"
+         AC_MSG_RESULT("yes") 
+         UMID_LIBS='$(UNIQNAMELIBS)'
+         ;;
+      no)
+         AC_MSG_RESULT("no")
+         UMID_LIBS=
+         ;;
+      esac
+   ],
+   [ enable_umidlookup=no
+     AC_MSG_RESULT("no")
+   ]
+)
+AC_SUBST(SERVER_CFLAGS)
+AC_SUBST(UMID_LIBS)
+
+AC_ARG_ENABLE(
+   client-version,
+   [  --enable-client-version         build in client version support],
+   [case $enableval in
+       yes|no)
+          ;;
+       *)
+          AC_MSG_ERROR([Sorry, --enable-client-version can only be yes or no. (Not '$enableval'.)])
+    esac
+   ],
+   enable_client_version=yes
+)
+if test "$enable_client_version" = yes; then
+AC_DEFINE([KX509_CLIENT_VERSION_IN_REQUEST], 1,
+	[Include client version in request])
+fi
+
+dnl *********************************************************************
+dnl * Determine proper Kerberos settings.  The dafault is to use krb5.
+dnl * If they specify, '--with-krb4' then we'll honor that.  If they
+dnl * try to specify both, then we complain.
+dnl * We need SOCK_LIBS set up before testing the kerberos libraries.
+dnl *********************************************************************
+
+case "$target" in
+   sparc-sun-solaris2*)
+      dnl Solaris needs -lresolv -lsocket and -lnsl for the dns lookup in kerberos
+      SOCK_LIBS="-lresolv -lsocket -lnsl"
+      ;;
+   *-linux-*)
+      dnl Linux needs -lcrypt for the afs_string_to_key() in kerberos,
+      dnl it needs -lresolv for the dns lookup in kerberos
+      SOCK_LIBS="-lcrypt -lresolv"
+      ;;
+   *)
+      SOCK_LIBS=""
+      ;;
+esac
+AC_SUBST(SOCK_LIBS)
+
+AC_MSG_CHECKING(Kerberos settings)
+dnl Check if they specified K5
+AC_ARG_WITH(
+   krb5,
+   [  --with-krb5[=path]      use Kerberos 5 authentication (default)],
+   [case "$withval" in
+       yes)
+          KRB5=$withval
+          ;;
+       no)
+          KRB5=no
+          ;;
+       *)
+          KRB5=$withval
+          ;;
+    esac
+   ],
+   KRB5=default
+)
+
+dnl Check if they specified K4
+AC_ARG_WITH(
+   krb4,
+   [  --with-krb4[=path]      use Kerberos 4 authentication],
+   [case "$withval" in
+       yes)
+          KRB4=$withval
+          ;;
+       no)
+          KRB4=no
+          ;;
+       *)
+          KRB4=$withval
+          ;;
+    esac
+   ],
+   KRB4=default
+)
+
+dnl echo "KRB4 is '$KRB4'"
+dnl echo "KRB5 is '$KRB5'"
+
+dnl KRB4 and KRB5 can each have four values:
+dnl 1) 'yes' 2) 'no'  3) 'default' 4) a specified path
+dnl Sort it out and do the right thing
+
+dnl If both are 'no', that's an error
+if test "$KRB5" = "no" ; then
+   if test "$KRB4" = "no" -o "$KRB4" = "default" ; then
+      AC_MSG_ERROR([No usable kerberos settings.  You must use either Kerberos4 or Kerberos5 (the default).])
+   fi
+fi
+
+dnl If both are either 'yes' or a specified path, then client will use
+dnl K5 and the server will accept both
+if test "$KRB4" != "default" -a "$KRB4" != "no" -a \
+        "$KRB5" != "default" -a "$KRB5" != "no" ; then
+   if test "$KRB4" = yes ; then
+       KRB4=$KRB4_DEFAULT
+   fi
+   if test "$KRB5" = yes ; then
+       KRB5=$KRB5_DEFAULT
+   fi
+   WHICH_KRB=both
+fi
+
+dnl If K5 wasn't explicitly specified, or specified generically;
+dnl and K4 wasn't explicitly specified, or explicitly disabled;
+dnl then use the default value -- KRB5_DEFAULT
+if test "$KRB5" = "default" -o "$KRB5" = "yes" ; then
+   if test "$KRB4" = "default" -o "$KRB4" = "no" ; then
+      KRB5=$KRB5_DEFAULT
+      WHICH_KRB=krb5
+   fi
+fi
+
+dnl If K5 wasn't defaulted above, or was explicitly disabled,
+dnl then we're using K4, so disable K5.
+dnl If K4 was specified generically,
+dnl then use the default value -- KRB4_DEFAULT
+if test "$KRB5" = "default" -o "$KRB5" = "no" ; then
+   KRB5=no
+   WHICH_KRB=krb4
+   if test "$KRB4" = "default" -o "$KRB4" = "yes" ; then
+      KRB4=$KRB4_DEFAULT
+   fi
+fi
+
+dnl If both K4 and K5 are specified, then the client will use K5 and the
+dnl server will accept both.  Otherwise, both client and server will use
+dnl whichever version of kerberos was specified.
+
+if test "$WHICH_KRB" = "" ; then
+   WHICH_KRB=krb5
+fi
+dnl echo "===================  WHICH_KRB is '$WHICH_KRB'  ===================="
+
+KRB4_INC=""
+KRB5_INC=""
+case "$WHICH_KRB" in
+   krb4)
+      KRB5=no
+      if test -f $KRB4/include/krb.h ; then
+         KRB4_INC="-I$KRB4/include"
+      else
+         if test -f $KRB4/include/kerberosIV/krb.h ; then
+            KRB4_INC="-I$KRB4/include -I$KRB4/include/kerberosIV"
+         else
+            AC_MSG_ERROR([Could not locate krb.h; you need to specify --with-krb4=PATH])
+         fi
+      fi
+      CLIENT_CFLAGS="$CLIENT_CFLAGS -DUSE_KRB4"
+      SERVER_CFLAGS="$SERVER_CFLAGS -DUSE_KRB4"
+      ;;
+   krb5)
+      KRB4=no
+      if test -f $KRB5/include/krb5.h ; then
+         KRB5_INC="-I$KRB5/include"
+      else
+         AC_MSG_ERROR([Could not locate krb5.h; you need to specify --with-krb5=PATH])
+      fi
+      CLIENT_CFLAGS="$CLIENT_CFLAGS -DUSE_KRB5"
+      SERVER_CFLAGS="$SERVER_CFLAGS -DUSE_KRB5"
+      ;;
+   both)
+      if test -f $KRB4/include/krb.h ; then
+         KRB4_INC="-I$KRB4/include"
+      else
+         if test -f $KRB4/include/kerberosIV/krb.h ; then
+            KRB4_INC="-I$KRB4/include -I$KRB4/include/kerberosIV"
+         else
+            AC_MSG_ERROR([Could not locate krb.h; you need to specify --with-krb4=PATH])
+         fi
+      fi
+      if test -f $KRB5/include/krb5.h ; then
+         KRB5_INC="-I$KRB5/include"
+      else
+         AC_MSG_ERROR([Could not locate krb5.h; you need to specify --with-krb5=PATH])
+      fi
+      CLIENT_CFLAGS="$CLIENT_CFLAGS -DUSE_KRB5"
+      SERVER_CFLAGS="$SERVER_CFLAGS -DUSE_KRB4 -DUSE_KRB5"
+      ;;
+esac
+if test "$KRB4" != no ; then
+   dnl
+   dnl  are we using the K4 compatibility support in K5, or a real K4?
+   dnl  --mdw
+   dnl
+   dnl do a sanity check
+   KRB4_LIB_DIR=/usr/lib
+   KRB4_LIBS=""
+   AC_CHECK_KRB_LIB(
+      [],
+      krb_rd_req,
+      AC_MSG_WARN([Strange; I found krb_rd_req and I did not need to look in $KRB4/lib .]),
+      dnl try MIT K5 1.1 and up
+      [  AC_CHECK_KRB_LIB(
+            [  -L${KRB4}/lib -lkrb4 -lkrb5 -lk5crypto -ldes425 -lcom_err $SOCK_LIBS],
+            krb_rd_req,
+            [  KRB4_LIB_DIR="$KRB4/lib"
+               KRB4_LIBS="-lkrb4 -lkrb5 -lk5crypto -lcom_err $SOCK_LIBS"
+            ],
+            dnl else try K5 1.0
+            [  AC_CHECK_KRB_LIB(
+                  [  -L${KRB4}/lib -lkrb4 -lkrb5 -lcrypto -ldes425 -lcom_err],
+                  krb_rd_req,
+                  [  KRB4_LIB_DIR="$KRB4/lib"
+                     KRB4_LIBS="-lkrb4 -lkrb5 -lcrypto -lcom_err"
+                  ],
+                  dnl else try real K4 (MIT or KTH)
+                  [  AC_CHECK_KRB_LIB(
+                        [  -L${KRB4}/lib -lkrb -ldes $SOCK_LIBS],
+                        krb_rd_req,
+                        [  KRB4_LIB_DIR="$KRB4/lib"
+                           KRB4_LIBS="-lkrb -ldes $SOCK_LIBS"
+                        ],
+                        AC_MSG_ERROR([Help!  I cannot find krb_rd_req in $KRB4/lib .])
+                     )
+                  ]
+               )
+            ]
+         )
+      ]
+   )
+   AC_SUBST(KRB4_LIB_DIR)
+   AC_SUBST(KRB4_LIBS)
+   dnl  -- end checking for K4 libraries
+fi
+
+if test "$KRB5" != no ; then
+   KRB5_LIB_DIR=$KRB5/lib
+   KRB5_LIBS="-lkrb5 -lk5crypto -lcom_err $SOCK_LIBS"
+   AC_SUBST(KRB5_LIB)
+fi
+
+AC_MSG_RESULT(ok)
+
+KRB_INC=""
+KRB_LIB=""
+
+case "$WHICH_KRB" in
+   krb4)
+      dnl echo "USING K4 stuff!"
+      KRB_INC="$KRB4_INC"
+      if test "$REFERENCE" = "" ; then
+         KRB_LIB="-L$KRB4_LIB_DIR $KRB4_LIBS"
+      else
+         KRB_LIB="$REFERENCE $KRB4_LIB_DIR -L$KRB4_LIB_DIR $KRB4_LIBS"
+      fi
+      ;;
+   krb5)
+      dnl echo "USING K5 stuff!"
+      KRB_INC="$KRB_INC $KRB5_INC"
+      if test "$REFERENCE" = "" ; then
+         KRB_LIB="-L$KRB5_LIB_DIR $KRB5_LIBS"
+      else
+         KRB_LIB="$REFERENCE $KRB5_LIB_DIR -L$KRB5_LIB_DIR $KRB5_LIBS"
+      fi
+      ;;
+   both)
+      dnl echo "USING K4 AND K5!"
+      KRB_INC="$KRB5_INC $KRB4_INC"
+      if test "$REFERENCE" = "" ; then
+         KRB_LIB="-L$KRB4_LIB_DIR $KRB4_LIBS -L$KRB5_LIB_DIR $KRB5_LIBS"
+      else
+         KRB_LIB="$REFERENCE $KRB4_LIB_DIR -L$KRB4_LIB_DIR $KRB4_LIBS $REFERENCE $KRB5_LIB_DIR -L$KRB5_LIB_DIR $KRB5_LIBS"
+      fi
+
+      ;;
+esac
+
+AC_SUBST(CLIENT_CFLAGS)
+AC_SUBST(SERVER_CFLAGS)
+AC_SUBST(KRB_INC)
+AC_SUBST(KRB_LIB)
+
+dnl echo "CLIENT_CFLAGS: $CLIENT_CFLAGS"
+dnl echo "SERVER_CFLAGS: $SERVER_CFLAGS"
+dnl echo ""
+dnl echo "KRB4        : $KRB4"
+dnl echo "KRB4_INC    : $KRB4_INC"
+dnl echo "KRB4_LIB_DIR: $KRB4_LIB_DIR"
+dnl echo "KRB4_LIBS   : $KRB4_LIBS"
+dnl echo ""
+dnl echo "KRB5        : $KRB5"
+dnl echo "KRB5_INC    : $KRB5_INC"
+dnl echo "KRB5_LIB_DIR: $KRB5_LIB_DIR"
+dnl echo "KRB5_LIBS   : $KRB5_LIBS"
+dnl echo ""
+dnl echo "KRB_INC     : $KRB_INC"
+dnl echo "KRB_LIB     : $KRB_LIB"
+dnl echo ""
+
+AC_ARG_WITH(
+   openssl,
+   [  --with-openssl=path     specify where the ssl package lives],
+   [  case "$with_openssl" in
+         yes|no)
+            OPENSSLBASE=$with_openssl
+            ;;
+         *)
+            if test -f $with_openssl/include/crypto.h \
+                  -o -f $with_openssl/include/openssl/crypto.h ; then
+               OPENSSLBASE=$with_openssl
+               withval=set
+            else
+               AC_MSG_ERROR([Could not locate crypto.h; you may need to specify --with-openssl?])
+            fi
+            ;;
+      esac
+   ],
+   [  if test "${OPENSSLBASE+set}" = set; then
+         AC_MSG_RESULT([Using existing OPENSSLBASE setting of $OPENSSLBASE])
+      else
+         AC_CACHE_CHECK(
+            OPENSSLBASE setting,
+            ac_cv_path_OPENSSLBASE,
+            [  for ac_cv_path_OPENSSLBASE in $kx509_path_OPENSSLBASE "no"
+               do
+                  case "$ac_cv_path_OPENSSLBASE" in
+                     "no")
+                        break
+                        ;;
+                     *)
+                        dnl echo "TRYING VALUE: $ac_cv_path_OPENSSLBASE"
+                        if test -f "$ac_cv_path_OPENSSLBASE"/include/crypto.h \
+                              -o -f "$ac_cv_path_OPENSSLBASE"/include/openssl/crypto.h ; then
+                           break
+                        fi
+                        ;;
+                  esac
+               done
+            ]
+         )
+         OPENSSLBASE=$ac_cv_path_OPENSSLBASE
+      fi
+   ]
+)
+
+AC_MSG_CHECKING(for proper OPENSSL library directory)
+if test -f "$OPENSSLBASE"/libssl.$SHLIB_SUFFIX -o -f "$OPENSSLBASE"/libssl.a
+then
+   OPENSSLLIB=$OPENSSLBASE
+else
+   if test -f "$OPENSSLBASE"/lib/libssl.$SHLIB_SUFFIX -o -f "$OPENSSLBASE"/lib/libssl.a
+   then
+      OPENSSLLIB="$OPENSSLBASE"/lib
+   else
+      echo ""
+      echo "Tried "$OPENSSLBASE"/libssl.$SHLIB_SUFFIX and "$OPENSSLBASE"/lib/libssl.$SHLIB_SUFFIX "
+      AC_MSG_ERROR([Could not find libssl.$SHLIB_SUFFIX; you may need to specify --with-openssl?])
+   fi
+fi
+AC_MSG_RESULT(ok)
+
+AC_MSG_CHECKING(for specification of --with-libpath)
+AC_ARG_WITH(
+   libpath,
+   [  --with-libpath=path     colon-separated list of places where the loader should
+                          look for shared libraries (may not work with gcc)],
+   [  case "$with_libpath" in
+         yes|no)
+            AC_MSG_ERROR([Sorry, you must specify a path with --with-libpath=])
+            ;;
+         *)
+	    LIBP=$with_libpath
+            ;;
+      esac
+      AC_MSG_RESULT($with_libpath)
+   ],
+   [
+      AC_MSG_RESULT(no)
+      LIBP=""
+   ]
+)
+if test "$LIBP" = "" ; then
+   LIBPATH=""
+else
+   if test "$REFERENCE" = "-R" ; then
+      LIBPATH="$REFERENCE $LIBP"
+   else
+      p=`echo $LIBP | sed -e 's/:/ /g'`
+      dnl echo "p is now '$p'"
+      for d in $p; do
+         LIBPATH="$LIBPATH $REFERENCE $d"
+	 dnl echo "LIBPATH is now '$LIBPATH'"
+      done
+   fi
+   dnl echo "Using '$LIBPATH' as the LIBPATH..."
+fi
+AC_SUBST(LIBPATH)
+
+
+
+if test "$enable_server" = yes; then
+
+   AC_ARG_WITH(
+      ldap,
+      [  --with-ldap=path        specify where the ldap package lives (server only)],
+      [  case "$with_ldap" in
+            yes|no)
+               LDAPBASE=$with_ldap
+               ;;
+            *)
+               if test -f $with_ldap/include/ldap.h; then
+                  LDAPBASE=$with_ldap
+                  withval=set
+               else
+                  AC_MSG_ERROR([Sorry, --with-ldap requires a full path name.])
+               fi
+            ;;
+         esac
+      ],
+      [  if test "${LDAPBASE+set}" = set; then
+            AC_MSG_RESULT([Using existing LDAPBASE setting of $LDAPBASE])
+         else
+            AC_CACHE_CHECK(
+               LDAPBASE setting,
+               ac_cv_path_LDAPBASE, 
+               [for ac_cv_path_LDAPBASE in $kx509_path_LDAPBASE "no"
+                do
+                  case "$ac_cv_path_LDAPBASE" in
+                     "no")
+                        break
+                        ;;
+                     *)
+                        if test -f "$ac_cv_path_LDAPBASE"/include/ldap.h; then
+                           break
+                        fi
+                        ;;
+                  esac
+                done
+               ]
+            )
+            LDAPBASE=$ac_cv_path_LDAPBASE
+         fi
+      ]
+   )
+
+   AC_ARG_WITH(
+      uniqname,
+      [  --with-uniqname=path    specify where the uniqname package lives (server only)],
+      [  case "$with_uniqname" in
+            yes|no)
+               UNIQNAMEBASE=$with_uniqname
+               ;;
+            *)
+               if test -f $with_uniqname/include/unint.h; then
+                  UNIQNAMEBASE=$with_uniqname
+                  withval=set
+               else
+                  AC_MSG_ERROR([Sorry, --with-uniqname requires a full path name.])
+               fi
+               ;;
+         esac
+      ],
+      [  if test "${UNIQNAMEBASE+set}" = set; then
+            AC_MSG_RESULT([Using existing UNIQNAMEBASE setting of $UNIQNAMEBASE])
+         else
+            AC_CACHE_CHECK(
+               UNIQNAMEBASE setting,
+               ac_cv_path_UNIQNAMEBASE, 
+               [  for ac_cv_path_UNIQNAMEBASE in $kx509_path_UNIQNAMEBASE "no"
+                  do
+                     case "$ac_cv_path_UNIQNAMEBASE" in
+                        "no")
+                           break
+                           ;;
+                        *)
+                           if test -f "$ac_cv_path_UNIQNAMEBASE"/include/unint.h; then
+                              break
+                           fi
+                           ;;
+                     esac
+                  done
+               ]
+            )
+            UNIQNAMEBASE=$ac_cv_path_UNIQNAMEBASE
+         fi
+      ]
+   )
+
+   if test "$UNIQNAMEBASE" != no ; then
+      dnl Only need afs if using uniqname lookup
+      AC_ARG_WITH(
+         afs,
+         [  --with-afs=path         specify where the afs package lives (server only)],
+         [  case "$with_afs" in
+               yes|no)
+                  AFSTOP=$with_afs
+                  ;;
+               *)
+                  if test -f $with_afs/include/ubik.h; then
+                     AFSTOP=$with_afs
+                     withval=set
+                  else
+                     AC_MSG_ERROR([Sorry, --with-afs requires a full path name.])
+                  fi
+                  ;;
+            esac
+         ],
+         [  if test "${AFSTOP+set}" = set; then
+               AC_MSG_RESULT([Using existing AFSTOP setting of $AFSTOP])
+            else
+               AC_CACHE_CHECK(
+                  AFSTOP setting,
+                  ac_cv_path_AFSTOP, 
+                  [  for ac_cv_path_AFSTOP in $kx509_path_AFSTOP no 
+                     do
+                        case "$ac_cv_path_AFSTOP" in
+                           "no")
+                              break
+                              ;;
+                           *)
+                              if test -f "$ac_cv_path_AFSTOP"/include/ubik.h; then
+                                 break
+                              fi
+                              ;;
+                        esac
+                     done
+                  ]
+               )
+               AFSTOP=$ac_cv_path_AFSTOP
+            fi
+         ]
+      )
+   fi
+fi
+
+dnl *********************************************************************
+dnl ***** VARIABLES *****
+dnl *********************************************************************
+
+AC_MSG_CHECKING(LDFLAGS setting)
+if test -z "$LDFLAGS"; then
+   AC_CACHE_VAL(ac_cv_prog_LD_LDFLAGS, [ac_cv_prog_LD_LDFLAGS=""])
+   LDFLAGS="${ac_cv_prog_LD_LDFLAGS}"
+else
+   ac_cv_prog_LD_LDFLAGS="$LDFLAGS"
+fi
+AC_SUBST(LDFLAGS) AC_MSG_RESULT($LDFLAGS)
+
+AC_SUBST(CFLAGS)
+AC_SUBST(OPENSSLBASE)
+AC_SUBST(OPENSSLLIB)
+AC_SUBST(AFSTOP)
+AC_SUBST(UNIQNAMEBASE)
+AC_SUBST(LDAPBASE)
+AC_SUBST(KRBBASE)
+
+dnl *********************************************************************
+dnl ***** PROGRAMS *****
+dnl *********************************************************************
+
+dnl I think this is not necessary, but I haven't sold
+dnl billdo on this idea yet...
+AC_PATH_PROG(GMAKE, gmake, /bin/false, /usr/um/make/bin:/usr/local/bin:/usr/bin:$PATH)
+if test $ac_cv_path_GMAKE = /bin/false; then
+   AC_PATH_PROG(MAKE, make, /bin/false, /usr/um/gnu/bin:/usr/itd/bin:$PATH)
+   if test $ac_cv_path_MAKE = /bin/false; then
+      AC_MSG_ERROR([Did not find a gmake or make in your path])
+   else
+      MAKE=make
+   fi
+else
+   MAKE=gmake
+fi
+AC_SUBST(MAKE)
+
+AC_PROG_RANLIB
+AC_PROG_INSTALL
+AC_PROG_LN_S
+AC_PROG_MAKE_SET
+
+AC_PATH_PROG(RM, rm, /bin/false, /bin:$PATH)
+if test $ac_cv_path_RM = /bin/false; then
+        AC_MSG_ERROR([Did not find rm in /bin or in your path])
+fi
+RM=${ac_cv_path_RM}
+AC_SUBST(RM)
+
+kx509_AR="${AR-ar}"  
+AC_PATH_PROG(AR, $kx509_AR, no, $PATH:/usr/ccs/bin)
+case $AR in
+no)
+        AC_MSG_ERROR([Did not find ar])
+        ;;
+esac
+
+dnl *********************************************************************
+dnl ***** HEADERS *****
+dnl *********************************************************************
+AC_HEADER_STDC
+
+dnl     client/ headers
+AC_CHECK_HEADERS(limits.h strings.h sys/fcntl.h sys/file.h)
+
+dnl     lib/ headers
+AC_MSG_CHECKING(htons)
+AC_TRY_LINK(
+   [],
+   int i = htons(25);,
+   AC_MSG_RESULT([in libc]),
+   AC_TRY_LINK(
+      [  #include <sys/types.h>
+         #include <sys/socket.h>
+         #include <netinet/in.h>
+      ],
+      int i = htons(25);,
+      [
+         AC_MSG_RESULT([in <netinet/in.h>])
+         AC_DEFINE([HACK_HTONS_NEEDS_NETINET_IN_H], 1,
+		[Define this if the htons definition is in <netinet/in.h>])
+      ],
+      AC_MSG_ERROR([Help!  I cannot figure out where htons is defined.])
+   )
+)
+
+dnl     server/ headers
+if test "$enable_server" = yes; then
+   AC_CHECK_HEADERS(sys/filio.h sys/select.h sys/ioctl.h stdarg.h varargs.h)
+   AC_CHECK_FUNCS(vfprintf)
+
+   if test "$UMICH" = yes; then
+      AC_MSG_CHECKING([aix4.3 afs3.4 typedef clash])
+      kx509_save_CFLAGS="$CFLAGS"
+      CFLAGS="-I$AFSTOP/include $CFLAGS"
+      AC_TRY_LINK(
+         [  #include <sys/types.h>
+            #include <afs/param.h>
+         ],
+         [],
+         [  AC_MSG_RESULT([no])
+         ],
+         [  AC_TRY_LINK(
+               [  #include <sys/types.h>
+                  # define int16  transarc_int16
+                  # define u_int16        transarc_u_int16
+                  # define int32  transarc_int32
+                  #include <afs/param.h>],
+               [],
+               [  AC_MSG_RESULT([ok, I can work around this.])
+                  AC_DEFINE([HACK_AIX43_AFS34_TYPEDEF_CLASH], 1,
+			[Define this if you are using AIX 4.3 and are using AFS 3.4 include files])
+               ],
+               [  AC_MSG_RESULT([uh-oh])
+                     AC_MSG_ERROR([I'm stuck, is that a real AFS tree?])
+               ]
+            )
+         ]
+      )
+      CFLAGS="$kx509_save_CFLAGS"
+   fi
+fi
+
+dnl *********************************************************************
+dnl * Set up system-specific values
+dnl *********************************************************************
+dnl
+case "$target" in
+   sparc-sun-solaris2*)
+      SYS="SOLARIS"
+      UCB_LIB="/usr/ucblib/libucb.a"
+      ;;
+   *-ibm-aix*)
+      SYS="AIX"
+      ;;
+   *-linux-*)
+      SYS="LINUX"
+      ;;
+   *-*-openbsd*)
+      SYS="OPENBSD"
+      ;;
+   powerpc-apple-darwin*)
+      SYS="darwin"
+      ;;
+   *)
+      SYS="UNKNOWN"
+      ;;
+esac
+
+if test "$REFERENCE" = "" ; then
+   CRYPTO_REF=""
+   SSL_REF=""
+else
+   CRYPTO_REF="$REFERENCE ${OPENSSLLIB}"
+   SSL_REF="$REFERENCE ${OPENSSLLIB}"
+fi
+
+AC_SUBST(CRYPTO_REF)
+AC_SUBST(SSL_REF)
+AC_SUBST(SYS)
+AC_SUBST(UCB_LIB)
+
+dnl *********************************************************************
+dnl ***** TYPEDEFS, STRUCTURES, & COMPILER CHARACTERISTICS
+dnl *********************************************************************
+AC_C_CONST
+AC_HEADER_TIME
+AC_STRUCT_TM
+
+
+dnl *********************************************************************
+dnl ***** LIBRARY FUNCTIONS *****
+dnl *********************************************************************
+AC_CHECK_FUNCS(bzero gethostname mktime strdup strftime strtol strchr uname)
+
+dnl *********************************************************************
+dnl ***** LIBRARIES *****
+dnl *********************************************************************
+AC_CHECK_LIB(bsd, flock, [LIBS="$LIBS -lbsd"])
+AC_CHECK_LIB(socket, listen, [LIBS="$LIBS -lsocket"])
+AC_CHECK_LIB(nsl, gethostbyname, [LIBS="$LIBS -lnsl"])
+
+XYZZY_LIBS="${LIBS}"
+LIBS="${LIBS} -L/usr/ucblib"
+AC_CHECK_LIB(ucb, ucbsigvec,
+    [LIBS="${XYZZY_LIBS} -L/usr/ucblib -lucb -R/usr/ucblib"],
+    [LIBS="${XYZZY_LIBS}"])
+
+SUBDIRS="lib $SUBDIRS client"
+CONFIG_FILES="$CONFIG_FILES ./Makefile lib/Makefile client/Makefile"
+if test "$enable_server" = yes; then
+   SUBDIRS="$SUBDIRS server"
+   CONFIG_FILES="${CONFIG_FILES} server/Makefile"
+
+   dnl Set a default of nothing, then try to find something better.
+   if test "$AFSTOP" != no -a "$enable_umidlookup" != no ; then
+      AFS_DOMESTIC_LIBDIR='';
+      AC_CHECK_KRB_LIB(
+         [  ${AFSTOP}/domestic/lib/librxkad.a ${AFSTOP}/lib/afs/libcom_err.a ${AFSTOP}/lib/afs/util.a ],
+         initialize_rxk_error_table,
+         AFS_DOMESTIC_LIBDIR='-L$(AFSTOP)/domestic/lib',
+         AC_CHECK_KRB_LIB(
+            [  ${AFSTOP}/lib/librxkad.a ${AFSTOP}/lib/afs/libcom_err.a ${AFSTOP}/lib/afs/util.a],
+            initialize_rxk_error_table,
+            AFS_DOMESTIC_LIBDIR='',
+            AC_MSG_ERROR([Cannot find initialize_rxk_error_table in $AFSTOP/domestic/lib or $AFSTOP/lib!])
+         )
+      )
+      AC_SUBST(AFS_DOMESTIC_LIBDIR)
+   fi
+fi
+AC_SUBST(SUBDIRS)
+
+
+AC_SUBST(CONFIG_FILES)
+
+AC_OUTPUT(${CONFIG_FILES}, [date > stamp-h])
+
+dnl The Makefiles and, more importantly, their subdirectories need
+dnl to be made before the SRC links may be made
+AC_ARG_ENABLE(srclinks,
+   [  --enable-srclinks[=NAME] create billdo's object-to-source directory
+                          symlinks named NAME [NAME=SRC]],
+   [ if test "$ac_cv_prog_LN_S" = 'ln -s'; then
+        if test "$enableval" = 'yes'; then
+           SRCDIR=SRC
+        else
+           SRCDIR=${enableval}
+        fi
+        for dir in ${SUBDIRS};
+        do
+           echo "creating ${dir}/${SRCDIR}"
+           case ${srcdir} in
+           /*)
+              $LN_S -f ${srcdir}/${dir} ${dir}/${SRCDIR}
+              ;;
+           *)
+              $LN_S -f ../${srcdir}/${dir} ${dir}/${SRCDIR}
+              ;;
+           esac
+        done
+     else
+        AC_MSG_WARN(unable to create SRC links)
+     fi
+   ]
+)
