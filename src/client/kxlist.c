@@ -199,24 +199,32 @@ int process(char *keyfile)
 
 	if (oflag && !ofile)
 	{
-		ofile = BIO_new(BIO_s_file());
-		if (!ofile)
-		{
-			perror("bio_new failed");
+		int fd;
+
+		//  Try to ensure a safe location for credentials
+		fd = open(oflag, O_CREAT|O_EXCL|O_WRONLY, 0600);
+		if (fd < 0) {
+			if (errno != EEXIST) {
+				perror("open (strict=1 first attempt)");
+				exit(1);
+			}
+
+			if (unlink(oflag)) {
+				perror("unlink (strict=1)");
+				exit(1);
+			}
+
+			fd = open(oflag, O_CREAT|O_EXCL|O_WRONLY, 0600);
+			if (fd < 0) {
+				perror("open (strict=1 second attempt)");
+				exit(1);
+			}
+		}
+		ofile = BIO_new_fd(fd, BIO_CLOSE);
+		if (!ofile) {
+			perror("BIO_new_fd failed");
 			exit(1);
 		}
-		if (BIO_write_filename(ofile, oflag) <= 0)
-		{
-			perror(oflag);
-			exit(1);
-		}
-#ifndef WIN32
-		if (chmod(oflag, 0600) != 0)
-		{
-			perror("setting mode for output file");
-			exit(1);
-		}
-#endif
 	}
 #if defined(USE_KRB5)
 
