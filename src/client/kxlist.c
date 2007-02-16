@@ -205,18 +205,18 @@ int process(char *keyfile)
 		fd = open(oflag, O_CREAT|O_EXCL|O_WRONLY, 0600);
 		if (fd < 0) {
 			if (errno != EEXIST) {
-				perror("open (strict=1 first attempt)");
+				perror("open (first attempt)");
 				exit(1);
 			}
 
 			if (unlink(oflag)) {
-				perror("unlink (strict=1)");
+				perror("unlink");
 				exit(1);
 			}
 
 			fd = open(oflag, O_CREAT|O_EXCL|O_WRONLY, 0600);
 			if (fd < 0) {
-				perror("open (strict=1 second attempt)");
+				perror("open (second attempt)");
 				exit(1);
 			}
 		}
