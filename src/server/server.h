@@ -134,4 +134,7 @@ struct request {
 int debug_mask;
 #define DF(x)	(debug_mask & (1L<<((x-'@'&31))))
 
+/* prototypes for su_util.c */
+char *iptos(long a, char *buf);
+
 #endif	/* _KX509_SERVER_H_ */
