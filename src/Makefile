@@ -2,29 +2,29 @@
 ##### $Id: Makefile.in,v 1.1.1.1 2007/01/26 15:57:04 kwcoffman Exp $
 
 SHELL= /bin/sh
-@SET_MAKE@
 
-srcdir= @srcdir@
-VPATH= @srcdir@
+
+srcdir= .
+
 
 SHELL= /bin/sh
 
-CC= @CC@
+CC= gcc
 
-INSTALL= @INSTALL@
-INSTALL_PROGRAM= @INSTALL_PROGRAM@
-INSTALL_DATA= @INSTALL_DATA@
+INSTALL= /usr/bin/install -c
+INSTALL_PROGRAM= ${INSTALL}
+INSTALL_DATA= ${INSTALL} -m 644
 
-AR= @AR@
-RANLIB= @RANLIB@
-RM= @RM@ -f
+AR= /usr/bin/ar
+RANLIB= ranlib
+RM= /bin/rm -f
 
-DEFS= @DEFS@
-LIBS= @LIBS@
+DEFS= -DHAVE_CONFIG_H
+LIBS=  -lbsd -lnsl
 
-prefix= @prefix@
+prefix= /usr/local
 binprefix=
-exec_prefix= @exec_prefix@
+exec_prefix= ${prefix}
 bindir= ${exec_prefix}/bin
 includedir= ${prefix}/include
 manprefix=
@@ -35,7 +35,7 @@ man8dir= ${prefix}/man/man8
 ##### End of system configuration section #####
 
 # Subdirectories with makefiles
-SUBDIRS= @SUBDIRS@
+SUBDIRS= lib  client
 
 ##### Targets #####
 

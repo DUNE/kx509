@@ -2,32 +2,32 @@
 ##### $Id: Makefile.in,v 1.1.1.1 2007/01/26 15:57:05 kwcoffman Exp $
 
 SHELL		= /bin/sh
-@SET_MAKE@
 
-srcdir		= @srcdir@
-VPATH		= @srcdir@
+
+srcdir		= .
+
 
 SHELL		= /bin/sh
 
-CC		= @CC@
+CC		= gcc
 
-INSTALL		= @INSTALL@
-INSTALL_PROGRAM	= @INSTALL_PROGRAM@
-INSTALL_DATA	= @INSTALL_DATA@
+INSTALL		= /usr/bin/install -c
+INSTALL_PROGRAM	= ${INSTALL}
+INSTALL_DATA	= ${INSTALL} -m 644
 
-AR		= @AR@
-RANLIB		= @RANLIB@
-RM		= @RM@ -f
+AR		= /usr/bin/ar
+RANLIB		= ranlib
+RM		= /bin/rm -f
 
-DEFS		= @DEFS@ -D@SYS@
-CFLAGS		= @CFLAGS@ @CLIENT_CFLAGS@
-LDFLAGS		= @LDFLAGS@
-SHLIB_SUFFIX	= @SHLIB_SUFFIX@
-SHLIB_PGM	= @SHLIB_PGM@
+DEFS		= -DHAVE_CONFIG_H -DLINUX
+CFLAGS		= -DWRITE_CERT  -DUSE_KRB5
+LDFLAGS		= 
+SHLIB_SUFFIX	= so
+SHLIB_PGM	= $(CC) -shared
 
-prefix		= @prefix@
+prefix		= /usr/local
 binprefix	=
-exec_prefix	= @exec_prefix@
+exec_prefix	= ${prefix}
 bindir		= ${exec_prefix}/bin
 includedir	= ${prefix}/include
 manprefix	=
@@ -38,14 +38,14 @@ man8dir		= ${prefix}/man/man8
 # The following need to be defined in order
 # to locate the Krb5, Krb4 and OpenSSL include files and libraries
 
-KRB_BASE	= @KRBBASE@
-OPENSSL_BASE	= @OPENSSLBASE@
+KRB_BASE	= /usr/kerberos
+OPENSSL_BASE	= /usr
 
 #
 # COMPILE-TIME
 #
 
-KRB_INCS	= @KRB_INC@
+KRB_INCS	=  -I/usr/include
 
 INCLUDE 	= -I$(OPENSSL_BASE)/include $(KRB_INCS) \
 			-I$(srcdir) -I$(srcdir)/../lib -I..
@@ -60,11 +60,11 @@ CLIENT_CFLAGS	= $(DEFS) $(DEFINE) $(INCLUDE) $(CCOPT) $(CFLAGS)
 #	cause problems that are avoided by statically linking K5 components
 #	BILLDO 2001.0610
 
-KRB_LIBS	= @KRB_LIB@
-OPENSSL_LIBS	= @CRYPTO_REF@ -L$(OPENSSL_BASE)/lib -L$(OPENSSL_BASE) -lcrypto
+KRB_LIBS	= -Wl,-rpath /usr/lib -L/usr/lib -lkrb5 -lk5crypto -lcom_err -lcrypt -lresolv
+OPENSSL_LIBS	= -Wl,-rpath /usr/lib -L$(OPENSSL_BASE)/lib -L$(OPENSSL_BASE) -lcrypto
 KX_LIBS		= ../lib/libkx.a
-EX_LIBS		= @SOCK_LIBS@
-LIBS		= $(KX_LIBS) $(OPENSSL_LIBS) $(KRB_LIBS) $(EX_LIBS) @LIBPATH@
+EX_LIBS		= -lcrypt -lresolv
+LIBS		= $(KX_LIBS) $(OPENSSL_LIBS) $(KRB_LIBS) $(EX_LIBS) 
 
 
 KX509_OBJS 	= kx509.o debug.o getcert.o get_kca_list.o get_realm.o \
@@ -73,7 +73,7 @@ KX509_OBJS 	= kx509.o debug.o getcert.o get_kca_list.o get_realm.o \
 LIBKX509_OBJS 	= kx509_lib.o debug.o getcert_lib.o get_kca_list.o get_realm.o \
 			load_dlls.o store_in_cc_lib.o store_tkt.o materialize_cert.o
 
-PROGS		= kx509 kxlist @EXTRA_CLIENT_TARGETS@
+PROGS		= kx509 kxlist 
 
 all:	$(PROGS)
 

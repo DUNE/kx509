@@ -1,0 +1,18 @@
+Quick instructions to build on OSX (universal binary):
+
+Prereqs:
+XCode
+Openssl 0.9.7
+
+Set env vars:
+CFLAGS="-O -g -isysroot /Developer/SDKs/MacOSX10.5.sdk -arch i386 -arch ppc -DBIND_8_COMPAT -Ddarwin"
+
+LDFLAGS="-arch i386 -arch ppc"
+
+Configure and make:
+./configure --with-krb5=<path to krb5 includes & libs, typically in /usr> --with-openssl=<path to openssl-0.9.7>
+
+make
+
+Client binaries will be in the src/client directory
+

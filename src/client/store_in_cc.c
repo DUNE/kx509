@@ -320,7 +320,13 @@ int store_in_cc(RSA *key,
 	 * and certificate) into the credentials cache.
 	 */ 
 
+#if defined(WRITE_CERT)
+	/* Write the key-pair and certificate to file (code lifted from kxlist -p) */
+	if (k5_rc = materialize_cert(k5_context, cc, &fake_creds))
+#else	/* WRITE_CERT */
+	/* Store the key-pair and certificate into the K5 credentials cache as a mock ticket */
 	if (k5_rc = krb5_cc_store_cred(k5_context, cc, &fake_creds))
+#endif	/* WRITE_CERT */
 	{
 		log_printf("store_in_cc: krb5_cc_store_cred returned %0d\n", k5_rc);
 		*err_msg = "Try re-authenticating.  "

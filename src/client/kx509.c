@@ -1,5 +1,5 @@
 /*
- * Copyright  ©  2000,2007
+ * Copyright  ï¿½  2000,2007
  * The Regents of the University of Michigan
  * ALL RIGHTS RESERVED
  *
@@ -36,6 +36,8 @@
 # include <sys/types.h> 
 #endif /* !macintosh */
 
+#define VERSION "2.1"
+
 #ifdef WIN32
 # define __WINCRYPT_H__       // PREVENT windows.h from including wincrypt.h
                              // since wincrypt.h and openssl namepsaces collide
@@ -62,6 +64,10 @@
 
 #include "kx509.h"
 #include "debug.h" 
+
+/* Include keylength define */
+#include "keylength.h"
+
  
 #if SSLEAY_VERSION_NUMBER > 0x0090601eL
 #if SSLEAY_VERSION_NUMBER > 0x0090700eL
@@ -82,9 +88,9 @@
 #endif
 
 #if defined(KX509_LIB)
-int getcert(RSA **rsa, X509 **, char *, int, char *realm, char *tkt_cache_name);
+int getcert(char *myserver, RSA **rsa, X509 **, char *, int, char *realm, char *tkt_cache_name);
 #else
-int getcert(RSA **rsa, X509 **, char *, int, char *realm);
+int getcert(char *myserver, RSA **rsa, X509 **, char *, int, char *realm);
 #endif
 
 #ifdef WIN32
@@ -100,16 +106,18 @@ void ADD_ALL_ALGORITHMS();
 #define	BUF_LEN	2048 
 
 #ifdef WIN32
-# define DEFBITS	512
+/*# define DEFBITS	1024 */
 #endif /* WIN32 */
  
 BIO 	*bio_err	= NULL; 
 int 	debugPrint 	= 0;		/* Don't print debug by default */
+								/* Defined as extern in debug.c */
+extern int quietPrint = 0;		/* Don't print at all */
+extern char *output_file_flag = NULL;	/* Output file if -o specified */
 
 char 	err_buf[512];
 
 char	szCertRealm[100] = {0};
-
 
 #ifdef drh
  
@@ -425,6 +433,7 @@ int main
         char            *key_file = NULL;
         char            *certkey_file = NULL;
 #endif
+	char		*myserver = NULL;
 #ifdef DEBUG
 	char		**hvector			= NULL;
 	char		**hvp				= NULL;
@@ -478,18 +487,53 @@ int main
                 strcpy(certkey_file, *argv);
                 break;
 #endif
+	case 's':
+		--argc;
+		myserver = (char *)Malloc(strlen(*++argv)+1);
+		strcpy(myserver, *argv);
+		break;
 
 	case 'd':
 		debugPrint++;
+		quietPrint = 0;			/* -d overrides -q */
 		break;
+
+	case 'q':
+		if (debugPrint)
+			{
+			quietPrint = 0;		/* -d overrides -q */
+			}
+		else
+			{
+			quietPrint++;
+			}
+		break;
+
+#ifdef WRITE_CERT
+	case 'o':
+		if (argc < 1) goto Usage;	/* -o must have argument */
+		--argc;
+		output_file_flag = *++argv;
+		break;
+#endif	/* WRITE_CERT */
 
 	case '-':
 		break;
 
+	case 'h':
+		fprintf(stdout,"FNAL kx509 version %s\n", VERSION);
+		goto Usage;
+
 	default:
 		fprintf(stderr,"Can't understand switch <%s>\n", argp);
 	Usage:
-		err_msg = "Usage: kx509 [-d]"
+		err_msg = "Usage: kx509 [-d (turn on debug output)]\n"
+"\t[-s server (specify KCA server name)]\n"
+#ifdef WRITE_CERT
+"\t[-o file (specify cert output file)]\n"
+#endif
+"\t[-q (no printout)] [-h (This help screen)]"
+
 #ifdef WIN32
 " [-S]"
 #endif /* WIN32 */
@@ -514,7 +558,7 @@ int main
 
 	/* USE K4 AUTHENT + RSA PUB-KEY TO GET CERT FROM CA SERVER  */
 
-	if (err_code = getcert(&rsa, &cert, err_buf, sizeof err_buf, realm
+	if (err_code = getcert(myserver,&rsa, &cert, err_buf, sizeof err_buf, realm
 #if defined(KX509_LIB)
                                                                           , tkt_cache_name
 #endif
@@ -569,8 +613,9 @@ int main
 	privkeyp = (BYTE *)(&privkeybuffer[0]);
 
 	/* store in Keychain */
-	err_code = store_in_keychain(privkeyp, privkeylen, pubkeyp,
+/*	err_code = store_in_keychain(privkeyp, privkeylen, pubkeyp,
 			pubkeylen, certp, certlen);
+*/
 
 	/* what about err_code??? */
 	/* for now, do both _keychain and _cc */

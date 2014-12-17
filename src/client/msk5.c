@@ -79,6 +79,10 @@
 #include "kx509_asn.h"
 #include <openssl/rand.h>
 
+/* Include keylength define */
+#include "keylength.h"
+
+
 
 #define	K4_CA_PRINC		"cert"
 #define	K4_CA_INST		"x509"
@@ -86,7 +90,7 @@
 #define	K5_CA_PRINC		"kca_service"
 
 #define KRBCHK_PORT     (u_short)9878
-#define	DEFBITS	512 /* first get MS stuff working, then do 1024 */
+/*#define	DEFBITS	1024 */ /* 1024 key length */
 
 void fill_in_octet_string(
 	ASN1_OCTET_STRING *osp,

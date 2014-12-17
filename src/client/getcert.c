@@ -91,6 +91,9 @@
 #include <stdlib.h>
 #include <openssl/x509v3.h>
 
+/* Include keylength define */
+#include "keylength.h"
+
 #ifdef USE_KRB5
 //  #ifndef USE_MSK5
 # include <krb5.h>
@@ -277,7 +280,7 @@ char ca_service[256] = CA_SERVICE;
 char ca_princ[ANAME_SZ] = CA_PRINC, ca_inst[INST_SZ] = CA_INST;
 #endif
 
-#define	DEFBITS	512 /* first get MS stuff working, then do 1024 */
+/*#define	DEFBITS	1024 */  /* 1024  key length*/
 
 /* Make "buffer" static since it's sometimes used for returned error messages */
 #if defined(USE_KRB5)
@@ -845,6 +848,7 @@ do_kx509_request(
 
 	/* XXX This won't work on macintosh */
 	if (debugPrint) {
+		printf("Using %d bit key length\n", DEFBITS);
 #if defined(DEBUG) && !defined(WIN32)
 		print_request(request);
 #endif
@@ -1395,6 +1399,7 @@ EXIT_VRP:
  *=========================================================================*
  */
 int getcert(
+	char *myserver,
 	RSA		**rsa,
 	X509	**certp,
 	char	*emsg,
@@ -1541,20 +1546,31 @@ int getcert(
 	/* DNS SRV records should obviate need for ENGIN->UMICH mapping */
 	base_realm = realm;
 
-	/* Use environment variable first, otherwise use list from DNS */
 
-	if ((env_host_list = getenv("KCA_HOST_LIST")) != NULL)
+	/* Use -s environment variable first, otherwise use list from DNS */
+
+	if (((env_host_list = getenv("KCA_HOST_LIST")) != NULL) || (myserver))
 	{
 		char *host;
 		int hostcount = 0;
 		char *hostlist = NULL;
 		char **hostarray = NULL;
 
-		/* Make a copy of the environment string */
-		if (strlen(env_host_list)) 
-			hostlist = malloc(strlen(env_host_list) + 1);
+		// Joe addition for -s
+		if(myserver){
+			// Use -s server
+			hostlist=malloc(strlen(myserver)+1);
+		} else {
+			/* Make a copy of the environment string */
+			if (strlen(env_host_list)) 
+				hostlist = malloc(strlen(env_host_list) + 1);
+		}
 		if (hostlist)
-			strcpy(hostlist, env_host_list);
+			if(myserver){
+				strcpy(hostlist, myserver);
+			} else {
+				strcpy(hostlist, env_host_list);
+			}
 		else
 		{
 			rc = KX509_STATUS_CLNT_BAD;

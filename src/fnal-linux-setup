@@ -1,0 +1,11 @@
+#export CFLAGS="-O -g -isysroot /Developer/SDKs/MacOSX10.7.sdk -arch i386 -DBIND_8_COMPAT -Ddarwini"
+#export CFLAGS="$CFLAGS -DWRITE_CERT"
+export CFLAGS="-DWRITE_CERT"
+
+#export LDFLAGS="-lresolv -l/usr/local/ssl/lib/libcrypto.a"
+#export LDFLAGS="-lresolv"
+
+#./configure --with-krb5=/usr --with-openssl=/Users/nagy/code/openssl-0.9.7
+
+./configure --with-krb5=/usr --with-openssl=/usr
+

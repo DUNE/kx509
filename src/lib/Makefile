@@ -2,29 +2,29 @@
 ##### $Id: Makefile.in,v 1.1.1.1 2007/01/26 15:57:05 kwcoffman Exp $
 
 SHELL		= /bin/sh
-@SET_MAKE@
 
-srcdir		= @srcdir@
-VPATH		= @srcdir@
+
+srcdir		= .
+
 
 SHELL		= /bin/sh
 
-CC		= @CC@
+CC		= gcc
 
-INSTALL		= @INSTALL@
-INSTALL_PROGRAM	= @INSTALL_PROGRAM@
-INSTALL_DATA	= @INSTALL_DATA@
+INSTALL		= /usr/bin/install -c
+INSTALL_PROGRAM	= ${INSTALL}
+INSTALL_DATA	= ${INSTALL} -m 644
 
-AR		= @AR@
-RANLIB		= @RANLIB@
-RM		= @RM@ -f
+AR		= /usr/bin/ar
+RANLIB		= ranlib
+RM		= /bin/rm -f
 
-DEFS		= @DEFS@
-LIBS		= @LIBS@
+DEFS		= -DHAVE_CONFIG_H
+LIBS		=  -lbsd -lnsl
 
-prefix		= @prefix@
+prefix		= /usr/local
 binprefix	=
-exec_prefix	= @exec_prefix@
+exec_prefix	= ${prefix}
 bindir		= ${exec_prefix}/bin
 includedir	= ${prefix}/include
 manprefix	=
@@ -35,13 +35,13 @@ man8dir		= ${prefix}/man/man8
 # The following need to be defined in order
 # to locate the Krb include files and libraries
 
-KRB_BASE	= @KRBBASE@
-OPENSSL_BASE	= @OPENSSLBASE@
+KRB_BASE	= /usr/kerberos
+OPENSSL_BASE	= /usr
 
 INCLUDE 	= -I$(OPENSSL_BASE)/include -I.. -I$(srcdir)
 
-CFLAGS		= @CFLAGS@
-LIB_CFLAGS	= -D@SYS@ $(CCOPT) $(DEFS) $(DEFINE) $(INCLUDE) $(CFLAGS)
+CFLAGS		= -DWRITE_CERT
+LIB_CFLAGS	= -DLINUX $(CCOPT) $(DEFS) $(DEFINE) $(INCLUDE) $(CFLAGS)
 
 KX_LIB_OBJS 	= udp_nb_socket.o	udp_nb_sockets.o 		\
 		  udp_nb_bind.o		udp_nb_connect.o 		\

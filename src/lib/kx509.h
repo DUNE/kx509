@@ -57,13 +57,20 @@
 #  define KX509_CLIENT_VERSION	"1.0"	/* Version number for this release of non-Windows KX509 */
 #endif /* !WIN32 */
 
-#define	KX509_CLIENT_TIMEOUT	10		/* 10 seconds *seems* long enough */
+/* Modded by Joe - added Jeff A changes */
+/*#define	KX509_CLIENT_TIMEOUT	10 */		/* 10 seconds *seems* long enough */
 
-#define MAX_UDP_PAYLOAD_LEN	1400		/* must fit in UDP payload */
+/* #define MAX_UDP_PAYLOAD_LEN	1400 */		/* must fit in UDP payload */
 
-#define MAX_AUTHENT_LEN		1250		/* mumbly foo made up value == MAX_KTXT_LEN */
-#define MAX_PUBKEY_LEN		1000		/* mumbly foo made up value... */
-#define	MAX_X509_CERT_LEN	1250		/* mumbly foo made up value... */
+/* #define MAX_AUTHENT_LEN		1250 */		/* mumbly foo made up value == MAX_KTXT_LEN */
+/* #define MAX_PUBKEY_LEN		1000 */		/* mumbly foo made up value... */
+/* #define	MAX_X509_CERT_LEN	1250 */		/* mumbly foo made up value... */
+
+#define    KX509_CLIENT_TIMEOUT    30        /* was 10 seconds */
+#define MAX_UDP_PAYLOAD_LEN    4000        /* must fit in UDP payload */
+#define MAX_AUTHENT_LEN        3000        /* mumbly foo made up value == MAX_KTXT_LEN */
+#define MAX_PUBKEY_LEN         2048        /* mumbly foo made up value... */
+#define MAX_X509_CERT_LEN      3988        /* mumbly foo made up value... */
 
 /*
  * KX509_STATUS_###

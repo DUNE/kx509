@@ -50,9 +50,9 @@ char *getelt(a_t **alist, char *name);
 int name_ok();
 int doauth(a_t ***attrl, a_t ***tattrl);
 #if defined(KX509_LIB)
-int getcert(RSA **, X509 **, char *, int, char *, char *);
+int getcert(char *myserver, RSA **, X509 **, char *, int, char *, char *);
 #else
-int getcert(RSA **, X509 **, char *, int, char *);
+int getcert(char *myserver, RSA **, X509 **, char *, int, char *);
 #endif
 RSA *client_genkey(int);
 int bin_dump(char *cp, int s);

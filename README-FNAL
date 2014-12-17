@@ -1,0 +1,13 @@
+UPDATED: 08-15-2008 - Changed DEFBITS to 1024 (2048 is too long for the existing protocol)
+
+KCA kx509 client, modified from the original University of Michigan source. This client adds the '-s' parameter to specify a KCA server to request a KCA from. This client also utilizes (unmoddified from orginal source) the 'krb5_get_host_realm()' to determine the realm of the client instead of using the realm of the client principal. This helps to prevent unneeded cross-realm referrals.
+
+If you wish to use original sources, go to http://www.kx509.org/
+
+To build:
+Change into kx509/src
+./configure --with-krb5=<path to krb5.h parent dir>  (e.g. ./configure --with-krb5=/usr )
+make
+
+Copy the binaries from kx509/src/client to where ever you want.
+

@@ -219,7 +219,7 @@ Unload_DLLs(
 /* Does this help any? */
 
 #include <krb5.h>
-#include <com_err.h>
+#include <et/com_err.h>
 
 #ifdef HAVE_HEIMDAL
 #define KRB5_CALLCONV

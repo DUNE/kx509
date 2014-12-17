@@ -1,10 +1,10 @@
 dnl Configure template for KX509
-dnl $Id$
+dnl $Id: configure.in,v 1.1.1.1 2007/01/26 15:57:04 kwcoffman Exp $
 dnl
 dnl Process this file with autoconf to produce a configure script
 dnl
 AC_INIT(KX509_SRC)
-AC_REVISION($Revision$)dnl
+AC_REVISION($Revision: 1.1.1.1 $)dnl
 AC_PREREQ(2.0)
 AC_CONFIG_HEADER(config.h)
 

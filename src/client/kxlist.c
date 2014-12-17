@@ -82,6 +82,9 @@ main(int argc, char **argv)
 	char *cp;
 	char proxyname[64];
 
+#if defined(WRITE_CERT)
+	exit(0);
+#endif
 #if defined(USE_KRB5)
 	progname = argv[0];
 #endif
@@ -177,7 +180,7 @@ int process(char *keyfile)
 	char	pinst[INST_SZ];
 	CREDENTIALS c;
 #endif
-	char buffer[512];
+	char buffer[2048];
 	int code;
 
 #if defined(USE_KRB5)
