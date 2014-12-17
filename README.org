@@ -1,0 +1,30 @@
+* Overview
+
+This package includes code from 
+
+http://sourceforge.net/projects/kx509/
+
+with later modification (in the =fnal= branch) by Fermilab
+
+http://computing.fnal.gov/authentication/kca/
+
+See also:
+
+ - [[./src/README]]
+ - [[./src/OVERVIEW]]
+
+* Installation
+
+This package is built with [[https://code.google.com/p/waf/][waf]] from the top level directory like:
+
+#+BEGIN_EXAMPLE
+  $ ./waf --prefix=/path/to/install configure build install
+#+END_EXAMPLE
+
+Or, see [[./src/INSTALL]] for original installation instructions (unlikely to work).
+
+
+
+
+
+

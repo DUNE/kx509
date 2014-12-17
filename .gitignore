@@ -6,3 +6,8 @@ config.status
 config.h
 src/client/kxlist
 src/stamp-h
+autom4te.cache
+.waf*
+.lock-waf*
+build
+install
