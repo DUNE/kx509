@@ -27,13 +27,17 @@ def build(bld):
               includes = ['src'],
               target = 'kxlib') 
 
-    kx509src = ['src/client/'+s for s in 'kx509.c debug.c getcert.c get_kca_list.c get_realm.c load_dlls.c store_in_cc.c store_tkt.c materialize_cert.c'.split()]
+    kx509src = 'kx509.c debug.c getcert.c get_kca_list.c get_realm.c load_dlls.c store_in_cc.c store_tkt.c materialize_cert.c'.split()
+    kx509src = ['src/client/'+s for s in kx509src]
     bld.program(source = kx509src,
                 includes = ['src', 'src/lib/'],
                 defines = defines,
                 target='kx509', 
                 use='kxlib KRB5 SSL') 
 
-    #bld.program(source='main.c', target='app', use='myshlib mystlib') 
-    #bld.shlib(source='b.c', target='myshlib', use='myobjects') 
-    #bld.objects(source='c.c', target='myobjects')
+    bld.program(source = 'src/client/kxlist.c',
+                includes = ['src', 'src/lib/'],
+                defines = defines,
+                target='kxlist',
+                use='kxlib KRB5 SSL')
+
